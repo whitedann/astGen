@@ -12,6 +12,8 @@
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/System/Vector2.hpp>
 
+#include "TileTypes.h"
+
 class World {
 public:
     World(sf::Vector2u size)
@@ -22,6 +24,41 @@ public:
     {
         InitPerlin(42);
         Generate();
+    }
+
+    TileType GetTile(int x, int y) {
+        float dx = static_cast<float>(x - m_center.x);
+        float dy = static_cast<float>(y - m_center.y);
+
+        float distance = std::sqrt(dx * dx + dy * dy);
+
+        float surfaceNoiseScale = 0.02f;
+        float surfaceNoise = SamplePerlin(x * surfaceNoiseScale, y * surfaceNoiseScale);
+        float ringNoiseScale = 0.05f;
+        float ringNoise    = SamplePerlin(x * ringNoiseScale, y * ringNoiseScale);
+
+        float baseRadius = 3900.f;
+        float amplitude = 20.f;
+
+        float surfaceRadius = baseRadius + surfaceNoise * amplitude;
+        if (distance > surfaceRadius) {
+            return TileType::Empty;
+        }
+
+        float ringDistance = distance + ringNoise * 300.f;
+        float t = distance / ringDistance;
+        float normT = t / baseRadius;
+        normT += ringNoise * .1;
+
+        if (normT > 0.8f) {
+            return TileType::Dust;
+        }
+        if (normT > 0.6f) {
+            return TileType::Rock;
+        }
+        if (normT > 0.0f){
+            return TileType::DenseRock;
+        }
     }
 
     void Draw(sf::RenderWindow& window)
@@ -38,10 +75,19 @@ private:
         {
             for (unsigned int x = 0; x < m_size.x; x++)
             {
-                float scale = 0.02f;
-                auto val = SamplePerlin(x * scale, y * scale) * 0.5f + 0.5f;
-                if (val > 0.6) {
-                    m_image.setPixel({x,y}, {200,200,200,200});
+                TileType tileType = GetTile(x, y);
+                switch (tileType) {
+                    case TileType::Empty:
+                        break;
+                    case TileType::Dust:
+                        m_image.setPixel({x,y}, {200, 200, 200, 255});
+                        break;
+                    case TileType::Rock:
+                        m_image.setPixel({x,y}, {120, 120, 120, 255});
+                        break;
+                    case TileType::DenseRock:
+                        m_image.setPixel({x,y}, {70, 70, 70, 255});
+                        break;
                 }
             }
         }
@@ -125,7 +171,7 @@ private:
     }
 
     sf::Vector2u m_size;
-    sf::Vector2u m_center;
+    sf::Vector2i m_center;
     sf::Image m_image;
     sf::Texture m_texture;
     sf::Sprite* m_sprite;

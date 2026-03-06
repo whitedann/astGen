@@ -6,9 +6,9 @@
 int main() {
 
     sf::Vector2u worldSize = {9000,9000};
-    sf::Vector2u windowSize = {1200,1200};
+    sf::Vector2u windowSize = {1000,1000};
 
-    sf::Vector2u playerStartTile = {3 * worldSize.x / 4, 3 * worldSize.y / 4};
+    sf::Vector2i playerStartTile = {static_cast<int>(3 * worldSize.x / 4), static_cast<int>(3 * worldSize.y / 4)};
 
     sf::RenderWindow window(
         sf::VideoMode(windowSize),
@@ -23,8 +23,8 @@ int main() {
     );
 
     sf::CircleShape box;
-    box.setRadius(4.f);
-    box.setFillColor(sf::Color::Yellow);
+    box.setRadius(8.f);
+    box.setFillColor(sf::Color::Red);
 
     while (window.isOpen())
     {

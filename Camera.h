@@ -21,7 +21,8 @@ public:
 
         m_zoomView = sf::View(
             startPos,
-            static_cast<sf::Vector2f>(windowSize));
+            {windowSize.x / 8.f, windowSize.y / 8.f}
+            );
 
         m_currentView = &m_zoomView;
     }
@@ -48,6 +49,22 @@ public:
         {
             if (key->code == sf::Keyboard::Key::Equal)
                 ToggleView();
+            if (key->code == sf::Keyboard::Key::Left) {
+                m_zoomCenter.x -= 10;
+                m_zoomView.setCenter(m_zoomCenter);
+            }
+            if (key->code == sf::Keyboard::Key::Right) {
+                m_zoomCenter.x += 10;
+                m_zoomView.setCenter(m_zoomCenter);
+            }
+            if (key->code == sf::Keyboard::Key::Up) {
+                m_zoomCenter.y -= 10;
+                m_zoomView.setCenter(m_zoomCenter);
+            }
+            if (key->code == sf::Keyboard::Key::Down) {
+                m_zoomCenter.y += 10;
+                m_zoomView.setCenter(m_zoomCenter);
+            }
         }
     }
 
