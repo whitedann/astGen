@@ -3,11 +3,10 @@
 
 #include "Camera.h"
 #include "World.h"
-// TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 int main() {
 
-    sf::Vector2u worldSize = {12000,12000};
-    sf::Vector2u windowSize = {900,900};
+    sf::Vector2u worldSize = {9000,9000};
+    sf::Vector2u windowSize = {1200,1200};
 
     sf::Vector2u playerStartTile = {3 * worldSize.x / 4, 3 * worldSize.y / 4};
 
