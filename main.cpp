@@ -6,7 +6,7 @@
 int main() {
 
     sf::Vector2u worldSize = {9000,9000};
-    sf::Vector2u windowSize = {1000,1000};
+    sf::Vector2u windowSize = {2000,2000};
 
     sf::Vector2i playerStartTile = {static_cast<int>(3 * worldSize.x / 4), static_cast<int>(3 * worldSize.y / 4)};
 

@@ -33,32 +33,42 @@ public:
         float distance = std::sqrt(dx * dx + dy * dy);
 
         float surfaceNoiseScale = 0.02f;
-        float surfaceNoise = SamplePerlin(x * surfaceNoiseScale, y * surfaceNoiseScale);
-        float ringNoiseScale = 0.05f;
-        float ringNoise    = SamplePerlin(x * ringNoiseScale, y * ringNoiseScale);
+        float surfaceNoise = SamplePerlin(x * surfaceNoiseScale, y * surfaceNoiseScale); // [-1 - 1]
+        float ringNoiseScale = 0.02f;
+        float ringNoise    = SamplePerlin(x * ringNoiseScale, y * ringNoiseScale); // [-1 - 1]
 
         float baseRadius = 3900.f;
         float amplitude = 20.f;
-
         float surfaceRadius = baseRadius + surfaceNoise * amplitude;
         if (distance > surfaceRadius) {
             return TileType::Empty;
         }
 
-        float ringDistance = distance + ringNoise * 300.f;
-        float t = distance / ringDistance;
-        float normT = t / baseRadius;
-        normT += ringNoise * .1;
-
-        if (normT > 0.8f) {
+        float outerMantleRadiusBase = 3000.f;
+        float outerMantleAmplitude = 50.f;
+        float outerMantleRadius = outerMantleRadiusBase + ringNoise * outerMantleAmplitude;
+        if (distance > outerMantleRadius) {
             return TileType::Dust;
         }
-        if (normT > 0.6f) {
+
+        float innerMantleRadiusBase = 2000.f;
+        float innerMantleAmplitude = 50.f;
+        float innerMantleRadius = innerMantleRadiusBase + ringNoise * innerMantleAmplitude;
+        if (distance > innerMantleRadius) {
             return TileType::Rock;
         }
-        if (normT > 0.0f){
+
+        float coreRadiusBase = 1000.f;
+        float coreRadiusAmplitude = 50.f;
+        float coreRadius = coreRadiusBase + ringNoise * coreRadiusAmplitude;
+        if (distance > coreRadius) {
             return TileType::DenseRock;
         }
+
+        else {
+            return TileType::SuperDenseRock;
+        }
+
     }
 
     void Draw(sf::RenderWindow& window)
@@ -80,13 +90,16 @@ private:
                     case TileType::Empty:
                         break;
                     case TileType::Dust:
-                        m_image.setPixel({x,y}, {200, 200, 200, 255});
+                        m_image.setPixel({x,y}, {255, 200, 0, 255});
                         break;
                     case TileType::Rock:
-                        m_image.setPixel({x,y}, {120, 120, 120, 255});
+                        m_image.setPixel({x,y}, {255, 170, 0, 255});
                         break;
                     case TileType::DenseRock:
-                        m_image.setPixel({x,y}, {70, 70, 70, 255});
+                        m_image.setPixel({x,y}, {255, 110, 0, 255});
+                        break;
+                    case TileType::SuperDenseRock:
+                        m_image.setPixel({x,y}, {250, 70, 0, 255});
                         break;
                 }
             }

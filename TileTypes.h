@@ -9,7 +9,8 @@ enum class TileType {
     Empty = 0,
     Dust,
     Rock,
-    DenseRock
+    DenseRock,
+    SuperDenseRock
 };
 
 #endif //ASTGEN_TILETYPES_H
