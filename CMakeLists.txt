@@ -11,7 +11,8 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_executable(astGen main.cpp
         World.h
-        Camera.h)
+        Camera.h
+        TileTypes.h)
 
 target_link_libraries(astGen
         PRIVATE

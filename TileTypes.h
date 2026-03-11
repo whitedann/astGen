@@ -13,4 +13,18 @@ enum class TileType {
     SuperDenseRock
 };
 
+enum class OreType {
+    EmptyOre = 0,
+    DustOre,
+    RockOre,
+    DenseRockOre,
+    SuperDenseRockOre
+};
+
+class Tile {
+public:
+    TileType tileType = TileType::Empty;
+    OreType oreType = OreType::EmptyOre;
+};
+
 #endif //ASTGEN_TILETYPES_H

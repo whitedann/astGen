@@ -26,48 +26,89 @@ public:
         Generate();
     }
 
-    TileType GetTile(int x, int y) {
+    Tile GetTile(int x, int y) {
+        Tile toReturn;
         float dx = static_cast<float>(x - m_center.x);
         float dy = static_cast<float>(y - m_center.y);
 
         float distance = std::sqrt(dx * dx + dy * dy);
 
-        float surfaceNoiseScale = 0.02f;
-        float surfaceNoise = SamplePerlin(x * surfaceNoiseScale, y * surfaceNoiseScale); // [-1 - 1]
         float ringNoiseScale = 0.02f;
-        float ringNoise    = SamplePerlin(x * ringNoiseScale, y * ringNoiseScale); // [-1 - 1]
+        float octave0 = SamplePerlin(x * ringNoiseScale * 5.f, y * ringNoiseScale * 5.f);
+        float octave1 = SamplePerlin(x * ringNoiseScale, y * ringNoiseScale);
+        float octave2 = 2 * SamplePerlin(x * ringNoiseScale * 0.15f, y * ringNoiseScale * 0.15f);
+        float octave3 = 4 * SamplePerlin(x * ringNoiseScale * 0.03f, y * ringNoiseScale * 0.03f);
+        float ringNoise    = octave1 + octave2 + octave3;
+        float caveNoise = (3.f + octave1 + octave2) / 6.f;
+        float oreNoise = octave0;
+        float tunnelNoise = SamplePerlin(x * 3.f, y * 4.f);
 
-        float baseRadius = 3900.f;
-        float amplitude = 20.f;
-        float surfaceRadius = baseRadius + surfaceNoise * amplitude;
+        float surfaceRadiusBase = 3900.f;
+        float surfaceRadiusAmplitude = 20.f;
+        float surfaceRadius = surfaceRadiusBase + ringNoise * surfaceRadiusAmplitude;
         if (distance > surfaceRadius) {
-            return TileType::Empty;
+            toReturn.tileType = TileType::Empty;
+            toReturn.oreType = OreType::EmptyOre;
+            return toReturn;
         }
 
         float outerMantleRadiusBase = 3000.f;
-        float outerMantleAmplitude = 50.f;
+        float outerMantleAmplitude = 100.f;
         float outerMantleRadius = outerMantleRadiusBase + ringNoise * outerMantleAmplitude;
         if (distance > outerMantleRadius) {
-            return TileType::Dust;
+            if (std::abs(tunnelNoise) < 0.6f) {
+                toReturn.tileType = TileType::Empty;
+            }
+            else if (caveNoise > 0.75f) {
+                toReturn.tileType = TileType::Empty;
+            }
+            else {
+                toReturn.tileType = TileType::Dust;
+            }
+            if (oreNoise > 0.4f) {
+                toReturn.oreType = OreType::DustOre;
+            }
+            else if (oreNoise < -0.7f) {
+                toReturn.oreType = OreType::RockOre;
+            }
+            return toReturn;
         }
 
         float innerMantleRadiusBase = 2000.f;
         float innerMantleAmplitude = 50.f;
         float innerMantleRadius = innerMantleRadiusBase + ringNoise * innerMantleAmplitude;
         if (distance > innerMantleRadius) {
-            return TileType::Rock;
+            if (caveNoise > 0.6f) {
+                toReturn.tileType = TileType::Empty;
+            }
+            else {
+                toReturn.tileType = TileType::Rock;
+            }
+            if (oreNoise > 0.4f) {
+                toReturn.oreType = OreType::RockOre;
+            }
+            if (oreNoise < -0.6f) {
+                toReturn.oreType = OreType::DenseRockOre;
+            }
+            return toReturn;
         }
 
         float coreRadiusBase = 1000.f;
         float coreRadiusAmplitude = 50.f;
         float coreRadius = coreRadiusBase + ringNoise * coreRadiusAmplitude;
         if (distance > coreRadius) {
-            return TileType::DenseRock;
+            toReturn.tileType = TileType::DenseRock;
+            if (oreNoise > 0.4f) {
+                toReturn.oreType = OreType::DenseRockOre;
+            }
+            return toReturn;
         }
 
-        else {
-            return TileType::SuperDenseRock;
+        toReturn.tileType = TileType::SuperDenseRock;
+        if (oreNoise > 0.4f) {
+            toReturn.oreType = OreType::SuperDenseRockOre;
         }
+        return toReturn;
 
     }
 
@@ -85,21 +126,51 @@ private:
         {
             for (unsigned int x = 0; x < m_size.x; x++)
             {
-                TileType tileType = GetTile(x, y);
+                auto [tileType, oreType] = GetTile(x, y);
                 switch (tileType) {
                     case TileType::Empty:
                         break;
                     case TileType::Dust:
-                        m_image.setPixel({x,y}, {255, 200, 0, 255});
+                        if (oreType != OreType::EmptyOre) {
+                            if (oreType != OreType::DustOre) {
+                                m_image.setPixel({x,y}, {164, 81, 255, 255});
+                            }
+                            else {
+                                m_image.setPixel({x,y}, {255, 118, 125, 255});
+                            }
+                        }
+                        else {
+                            m_image.setPixel({x,y}, {171, 187, 207, 255});
+                        }
                         break;
                     case TileType::Rock:
-                        m_image.setPixel({x,y}, {255, 170, 0, 255});
+                        if (oreType != OreType::EmptyOre) {
+                            if (oreType != OreType::RockOre) {
+                                m_image.setPixel({x,y}, {98, 122, 102, 255});
+                            }
+                            else {
+                                m_image.setPixel({x,y}, {168, 122, 199, 255});
+                            }
+                        }
+                        else {
+                            m_image.setPixel({x,y}, {133, 149, 207, 255});
+                        }
                         break;
                     case TileType::DenseRock:
-                        m_image.setPixel({x,y}, {255, 110, 0, 255});
+                        if (oreType != OreType::EmptyOre) {
+                            m_image.setPixel({x,y}, {205, 70, 250, 255});
+                        }
+                        else {
+                            m_image.setPixel({x,y}, {96, 112, 133, 255});
+                        }
                         break;
                     case TileType::SuperDenseRock:
-                        m_image.setPixel({x,y}, {250, 70, 0, 255});
+                        if (oreType != OreType::EmptyOre) {
+                            m_image.setPixel({x,y}, {76, 217, 99, 255});
+                        }
+                        else {
+                            m_image.setPixel({x,y}, {73, 88, 107, 255});
+                        }
                         break;
                 }
             }
