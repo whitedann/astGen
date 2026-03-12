@@ -24,7 +24,7 @@ public:
             {windowSize.x / 8.f, windowSize.y / 8.f}
             );
 
-        m_currentView = &m_mainView;
+        m_currentView = &m_zoomView;
     }
 
     void HandleEvent(sf::RenderWindow& window, const sf::Event& event)
@@ -47,22 +47,29 @@ public:
 
         if (auto key = event.getIf<sf::Event::KeyPressed>())
         {
-            if (key->code == sf::Keyboard::Key::Equal)
-                ToggleView();
+            if (key->code == sf::Keyboard::Key::Equal) {
+                //ToggleView();
+                ZoomInView();
+            }
+
+            if (key->code == sf::Keyboard::Key::Hyphen) {
+                //ToggleView();
+                ZoomOutView();
+            }
             if (key->code == sf::Keyboard::Key::Left) {
-                m_zoomCenter.x -= 50;
+                m_zoomCenter.x -= 5;
                 m_zoomView.setCenter(m_zoomCenter);
             }
             if (key->code == sf::Keyboard::Key::Right) {
-                m_zoomCenter.x += 50;
+                m_zoomCenter.x += 5;
                 m_zoomView.setCenter(m_zoomCenter);
             }
             if (key->code == sf::Keyboard::Key::Up) {
-                m_zoomCenter.y -= 50;
+                m_zoomCenter.y -= 5;
                 m_zoomView.setCenter(m_zoomCenter);
             }
             if (key->code == sf::Keyboard::Key::Down) {
-                m_zoomCenter.y += 50;
+                m_zoomCenter.y += 5;
                 m_zoomView.setCenter(m_zoomCenter);
             }
         }
@@ -101,6 +108,18 @@ private:
             m_currentView = &m_mainView;
         else
             m_currentView = &m_zoomView;
+    }
+
+    void ZoomInView() {
+        if (m_currentView == &m_zoomView) {
+            m_zoomView.setSize(sf::Vector2f(m_zoomView.getSize().x / 2.f, m_zoomView.getSize().y / 2.f));
+        }
+    }
+
+    void ZoomOutView() {
+        if (m_currentView == &m_zoomView) {
+            m_zoomView.setSize(sf::Vector2f(m_zoomView.getSize().x * 2.f, m_zoomView.getSize().y * 2.f));
+        }
     }
 
     sf::Vector2u m_windowSize;

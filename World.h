@@ -22,7 +22,7 @@ public:
           m_image(size, sf::Color::Black),
          m_sprite(nullptr)
     {
-        InitPerlin(42);
+        InitPerlin(100);
         Generate();
     }
 
@@ -33,18 +33,24 @@ public:
 
         float distance = std::sqrt(dx * dx + dy * dy);
 
-        float ringNoiseScale = 0.02f;
-        float octave0 = SamplePerlin(x * ringNoiseScale * 5.f, y * ringNoiseScale * 5.f);
-        float octave1 = SamplePerlin(x * ringNoiseScale, y * ringNoiseScale);
-        float octave2 = 2 * SamplePerlin(x * ringNoiseScale * 0.15f, y * ringNoiseScale * 0.15f);
-        float octave3 = 4 * SamplePerlin(x * ringNoiseScale * 0.03f, y * ringNoiseScale * 0.03f);
-        float ringNoise    = octave1 + octave2 + octave3;
-        float caveNoise = (3.f + octave1 + octave2) / 6.f;
-        float oreNoise = octave0;
-        float nx = 0.007f * (0.8f * x - 0.6f * y);
-        float ny = 0.007f * (0.6f * x + 0.8f * y);
+        float ringNoiseScale = 0.002f;
+        //float octave0 = SamplePerlin(x * ringNoiseScale * 5.f, y * ringNoiseScale * 5.f);
+        float octave1 = SamplePerlin(x * ringNoiseScale * 2.f, y * ringNoiseScale * 2.f);
+        float octave2 = SamplePerlin(x * ringNoiseScale * 4.f, y * ringNoiseScale * 4.f) / 4.f;
+        float octave3 = SamplePerlin(x * ringNoiseScale * 8.f, y * ringNoiseScale * 8.f) / 8.f;
+        float octave4 = SamplePerlin(x * ringNoiseScale * 16.f, y * ringNoiseScale * 16.f) / 16.f;
+        float highResNoise = SamplePerlin(x * ringNoiseScale * 30.f, y * ringNoiseScale * 30.f) / 10.f;
+        float ringNoise    = octave4 * 16.f;
+        float caveNoise = (octave1 + octave2 + octave3 + octave4 + highResNoise) / 1.6875f + 0.1f;
+        float oreNoise = highResNoise * 10.f;;
+        float nx = 0.0027f * (0.8f * x - 0.6f * y);
+        float ny = 0.0027f * (0.6f * x + 0.8f * y);
         float tunnelNoise = SamplePerlin(nx + 500.0f, ny + 900.0f);
+        float tunnelNoise2 = SamplePerlin(nx * 4.f, ny * 4.f) / 4.f;
+        float tunnelNoise3 = SamplePerlin(nx * 8.f, tunnelNoise2 * 8.f) / 8.f;
+        tunnelNoise = (tunnelNoise + tunnelNoise2 + tunnelNoise3 + highResNoise) / 1.375f + 0.1f;
 
+        /** Surface **/
         float surfaceRadiusBase = 3900.f;
         float surfaceRadiusAmplitude = 20.f;
         float surfaceRadius = surfaceRadiusBase + ringNoise * surfaceRadiusAmplitude;
@@ -54,25 +60,35 @@ public:
             return toReturn;
         }
 
+        /** Outer Mantle **/
         float outerMantleRadiusBase = 3000.f;
         float outerMantleAmplitude = 100.f;
         float outerMantleRadius = outerMantleRadiusBase + ringNoise * outerMantleAmplitude;
         if (distance > outerMantleRadius) {
-            if (std::abs(tunnelNoise) < 0.1f) {
+            if (std::abs(tunnelNoise) < 0.035f) {
                 toReturn.tileType = TileType::Empty;
             }
-            else if (caveNoise > 0.65f) {
+            else if (caveNoise > 0.35f) {
                 toReturn.tileType = TileType::Empty;
             }
             else {
                 toReturn.tileType = TileType::Dust;
             }
-            if (oreNoise > 0.4f) {
+            if (oreNoise > 0.5f) {
                 toReturn.oreType = OreType::DustOre;
             }
-            else if (oreNoise < -0.7f) {
+            else if (oreNoise < -0.5f) {
                 toReturn.oreType = OreType::RockOre;
             }
+            return toReturn;
+        }
+
+        /** FIRST BORDER **/
+        float firstBorderRadiusBase = 2950.f;
+        float firstBorderAmplitude = 50.f;
+        float firstBorderRadius = firstBorderRadiusBase + ringNoise * firstBorderAmplitude;
+        if (distance > firstBorderRadius) {
+            toReturn.tileType = TileType::DenseRock;
             return toReturn;
         }
 
@@ -80,7 +96,10 @@ public:
         float innerMantleAmplitude = 50.f;
         float innerMantleRadius = innerMantleRadiusBase + ringNoise * innerMantleAmplitude;
         if (distance > innerMantleRadius) {
-            if (caveNoise > 0.6f) {
+            if (std::abs(tunnelNoise) < 0.03f) {
+                toReturn.tileType = TileType::Empty;
+            }
+            else if (caveNoise > 0.4f) {
                 toReturn.tileType = TileType::Empty;
             }
             else {
@@ -95,10 +114,26 @@ public:
             return toReturn;
         }
 
+        /** Second Border **/
+        float secondBorderRadiusBase = 2900.f;
+        float secondBorderAmplitude = 100.f;
+        float secondBorderRadius = secondBorderRadiusBase + ringNoise * secondBorderAmplitude;
+        if (distance > secondBorderRadius) {
+            toReturn.tileType = TileType::Dust;
+            return toReturn;
+        }
+
+        /** Outer Core **/
         float coreRadiusBase = 1000.f;
         float coreRadiusAmplitude = 50.f;
         float coreRadius = coreRadiusBase + ringNoise * coreRadiusAmplitude;
         if (distance > coreRadius) {
+            if (std::abs(tunnelNoise) < 0.02f) {
+                toReturn.tileType = TileType::Empty;
+            }
+            else if (caveNoise > 0.37f) {
+                toReturn.tileType = TileType::Empty;
+            }
             toReturn.tileType = TileType::DenseRock;
             if (oreNoise > 0.4f) {
                 toReturn.oreType = OreType::DenseRockOre;
@@ -106,6 +141,7 @@ public:
             return toReturn;
         }
 
+        /** Central Core **/
         toReturn.tileType = TileType::SuperDenseRock;
         if (oreNoise > 0.4f) {
             toReturn.oreType = OreType::SuperDenseRockOre;

@@ -23,7 +23,7 @@ int main() {
     );
 
     sf::CircleShape box;
-    box.setRadius(8.f);
+    box.setRadius(1.f);
     box.setFillColor(sf::Color::Red);
 
     while (window.isOpen())
