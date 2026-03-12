@@ -41,7 +41,9 @@ public:
         float ringNoise    = octave1 + octave2 + octave3;
         float caveNoise = (3.f + octave1 + octave2) / 6.f;
         float oreNoise = octave0;
-        float tunnelNoise = SamplePerlin(x * 3.f, y * 4.f);
+        float nx = 0.007f * (0.8f * x - 0.6f * y);
+        float ny = 0.007f * (0.6f * x + 0.8f * y);
+        float tunnelNoise = SamplePerlin(nx + 500.0f, ny + 900.0f);
 
         float surfaceRadiusBase = 3900.f;
         float surfaceRadiusAmplitude = 20.f;
@@ -56,10 +58,10 @@ public:
         float outerMantleAmplitude = 100.f;
         float outerMantleRadius = outerMantleRadiusBase + ringNoise * outerMantleAmplitude;
         if (distance > outerMantleRadius) {
-            if (std::abs(tunnelNoise) < 0.6f) {
+            if (std::abs(tunnelNoise) < 0.1f) {
                 toReturn.tileType = TileType::Empty;
             }
-            else if (caveNoise > 0.75f) {
+            else if (caveNoise > 0.65f) {
                 toReturn.tileType = TileType::Empty;
             }
             else {
