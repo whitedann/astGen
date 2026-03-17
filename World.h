@@ -147,7 +147,6 @@ public:
             toReturn.oreType = OreType::SuperDenseRockOre;
         }
         return toReturn;
-
     }
 
     void Draw(sf::RenderWindow& window)

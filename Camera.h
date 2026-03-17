@@ -9,35 +9,25 @@
 
 class Camera {
 public:
-    Camera(sf::Vector2u worldSize,
-           sf::Vector2u windowSize,
+    Camera(sf::Vector2u windowSize,
            sf::Vector2f startPos)
         : m_windowSize(windowSize),
           m_zoomCenter(startPos)
     {
-        m_mainView = sf::View(
-            {worldSize.x/2.f, worldSize.y/2.f},
-            static_cast<sf::Vector2f>(worldSize));
-
         m_zoomView = sf::View(
             startPos,
             {windowSize.x / 8.f, windowSize.y / 8.f}
             );
-
-        m_currentView = &m_zoomView;
     }
 
     void HandleEvent(sf::RenderWindow& window, const sf::Event& event)
     {
         if (auto mouse = event.getIf<sf::Event::MouseButtonPressed>())
         {
-            if (m_currentView == &m_zoomView)
-            {
-                m_dragging = true;
-                m_dragStart =
-                    window.mapPixelToCoords(
-                        sf::Mouse::getPosition(window));
-            }
+            m_dragging = true;
+            m_dragStart =
+                window.mapPixelToCoords(
+                    sf::Mouse::getPosition(window));
         }
 
         if (event.is<sf::Event::MouseButtonReleased>())
@@ -48,7 +38,6 @@ public:
         if (auto key = event.getIf<sf::Event::KeyPressed>())
         {
             if (key->code == sf::Keyboard::Key::Equal) {
-                //ToggleView();
                 ZoomInView();
             }
 
@@ -77,7 +66,8 @@ public:
 
     void Update(sf::RenderWindow& window)
     {
-        if (!m_dragging || m_currentView != &m_zoomView)
+        window.setView(m_zoomView);
+        if (!m_dragging)
             return;
 
         auto mousePos = sf::Mouse::getPosition(window);
@@ -86,13 +76,8 @@ public:
         auto diff = m_dragStart - newWorldPos;
 
         m_zoomCenter += diff;
-
         m_zoomView.setCenter(m_zoomCenter);
-    }
 
-    void Apply(sf::RenderWindow& window)
-    {
-        window.setView(*m_currentView);
     }
 
     sf::Vector2f GetZoomCenter() const
@@ -102,32 +87,17 @@ public:
 
 private:
 
-    void ToggleView()
-    {
-        if (m_currentView == &m_zoomView)
-            m_currentView = &m_mainView;
-        else
-            m_currentView = &m_zoomView;
-    }
-
     void ZoomInView() {
-        if (m_currentView == &m_zoomView) {
-            m_zoomView.setSize(sf::Vector2f(m_zoomView.getSize().x / 2.f, m_zoomView.getSize().y / 2.f));
-        }
+        m_zoomView.setSize(sf::Vector2f(m_zoomView.getSize().x / 2.f, m_zoomView.getSize().y / 2.f));
     }
 
     void ZoomOutView() {
-        if (m_currentView == &m_zoomView) {
-            m_zoomView.setSize(sf::Vector2f(m_zoomView.getSize().x * 2.f, m_zoomView.getSize().y * 2.f));
-        }
+        m_zoomView.setSize(sf::Vector2f(m_zoomView.getSize().x * 2.f, m_zoomView.getSize().y * 2.f));
     }
 
     sf::Vector2u m_windowSize;
 
-    sf::View m_mainView;
     sf::View m_zoomView;
-    sf::View* m_currentView;
-
     sf::Vector2f m_zoomCenter;
 
     bool m_dragging = false;
