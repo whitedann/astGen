@@ -5,6 +5,7 @@
 #ifndef ASTGEN_CHUNKENUMS_H
 #define ASTGEN_CHUNKENUMS_H
 
+static constexpr int WORLD_SIZE_CHUNKS = 300;
 static constexpr int CHUNK_SIZE_PX = 32;
 static constexpr int TILE_SIZE_PX = 1;
 

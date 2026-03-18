@@ -43,13 +43,13 @@ void ChunkManager::UpdateUnloadTasks() {
 void ChunkManager::UpdateChunksToLoad() {
     m_chunksInRange.clear();
 
-    const sf::Vector2f center = m_currentView.getCenter();
-    const sf::Vector2f size   = m_currentView.getSize();
+    const sf::Vector2f center = m_window->getView().getCenter();
+    const sf::Vector2f size   = m_window->getView().getSize();
 
-    const float left   = center.x - size.x * 0.5f;
-    const float right  = center.x + size.x * 0.5f;
-    const float top    = center.y - size.y * 0.5f;
-    const float bottom = center.y + size.y * 0.5f;
+    const float left   = center.x - size.x * 0.15f;
+    const float right  = center.x + size.x * 0.15f;
+    const float top    = center.y - size.y * 0.15f;
+    const float bottom = center.y + size.y * 0.15f;
 
     int minChunkX = static_cast<int>(std::floor(left / CHUNK_SIZE_PX));
     int maxChunkX = static_cast<int>(std::floor(right / CHUNK_SIZE_PX));
@@ -85,6 +85,11 @@ void ChunkManager::UpdateChunksToLoad() {
             LoadChunk(chunk.GetChunkID());
         }
     }
+    for (auto& cID : m_chunksToUnload) {
+        if (!ChunkIsLocked(cID)) {
+            UnloadChunk(cID);
+        }
+    }
 }
 
 void ChunkManager::UpdateChunksToUnload() {
@@ -98,12 +103,13 @@ void ChunkManager::UpdateChunksToUnload() {
 }
 
 void ChunkManager::LoadChunk(const ChunkID& l_cID) {
-    auto& chunk = m_chunks[l_cID];
+    auto chunk = m_chunks[l_cID].get();
     LockChunk(l_cID);
     chunk->SetChunkState(ChunkState::LOADING);
     //PreloadChunk(*chunk.get());
-    auto workTask = [&chunk, this]() {
-        LoadChunkAsync(*chunk.get());
+    auto workTask = [chunk, this]() {
+        LoadChunkAsync(*chunk);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1500));
         chunk->SetChunkState(ChunkState::LOADED);
         UnlockChunk(chunk->GetChunkID());
     };
@@ -111,13 +117,14 @@ void ChunkManager::LoadChunk(const ChunkID& l_cID) {
 }
 
 void ChunkManager::UnloadChunk(const ChunkID& l_cID) {
-    auto& chunk = m_chunks[l_cID];
+    auto chunk = m_chunks[l_cID].get();
     LockChunk(l_cID);
     chunk->SetChunkState(ChunkState::UNLOADING);
     m_chunksLoaded.erase(l_cID);
     //PreUnloadChunk(*chunk.get());
-    auto workTask = [&chunk, this]() {
-        UnloadChunkAsync(*chunk.get());
+    auto workTask = [chunk, this]() {
+        UnloadChunkAsync(*chunk);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1500));
         chunk->SetChunkState(ChunkState::UNLOADED);
         UnlockChunk(chunk->GetChunkID());
     };
@@ -154,7 +161,15 @@ bool ChunkManager::ChunkIsLocked(const ChunkID& l_cID) {
 }
 
 void ChunkManager::Draw(sf::RenderWindow& l_wind) {
-
+    for (auto& loader : m_chunkLoaders) {
+        for (auto& chunkID : m_chunksLoaded) {
+            auto chunk = m_chunks[chunkID].get();
+            if (chunk->NeedsRedraw()) {
+                chunk->RedrawAll();
+            }
+            loader->Draw(*chunk, &l_wind);
+        }
+    }
 }
 
 

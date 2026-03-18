@@ -23,7 +23,7 @@ public:
          m_sprite(nullptr)
     {
         InitPerlin(100);
-        Generate();
+        //Generate();
     }
 
     Tile GetTile(int x, int y) {

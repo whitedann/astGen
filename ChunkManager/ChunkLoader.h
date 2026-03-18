@@ -12,7 +12,10 @@ public:
     virtual void LoadChunkAsync(Chunk& l_chunk) = 0;
     virtual void UnloadChunkAsync(Chunk& l_chunk) = 0;
 
+    virtual void Draw(Chunk& l_chunk, sf::RenderWindow* l_wind) = 0;
+
 private:
+
 };
 
 #endif //ASTGEN_CHUNKLOADER_H

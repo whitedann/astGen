@@ -6,7 +6,6 @@ find_package(SFML CONFIG REQUIRED
         Window
         System
 )
-
 set(CMAKE_CXX_STANDARD 20)
 
 add_executable(astGen main.cpp

@@ -24,7 +24,7 @@ class ChunkManager {
 
 public:
 
-    ChunkManager(const sf::View& l_view): m_currentView(l_view) {}
+    ChunkManager(sf::RenderWindow* l_wind): m_window(l_wind) {}
 
     void Update(float l_dT);
     void Draw(sf::RenderWindow& l_wind);
@@ -47,7 +47,7 @@ private:
     void UnlockChunk(const ChunkID &l_cID);
     bool ChunkIsLocked(const ChunkID &l_cID);
 
-    sf::View m_currentView;
+    sf::RenderWindow* m_window;
 
     std::unordered_map<ChunkID, std::unique_ptr<Chunk>> m_chunks;
     std::vector<ChunkLoader*> m_chunkLoaders;
