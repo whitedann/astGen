@@ -19,7 +19,9 @@ add_executable(astGen main.cpp
         ChunkManager/ChunkEnums.h
         MapManager/Map.h
         MapManager/Map.cpp
-        ChunkManager/ChunkLoader.h)
+        ChunkManager/ChunkLoader.h
+        Game.h
+        Game.cpp)
 
 target_link_libraries(astGen
         PRIVATE

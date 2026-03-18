@@ -11,8 +11,8 @@ class Map : public ChunkLoader {
 
 public:
 
-    void LoadChunkAsync(Chunk& l_chunk);
-    void UnloadChunkAsync(Chunk& l_chunk);
+    void LoadChunkAsync(Chunk& l_chunk) override;
+    void UnloadChunkAsync(Chunk& l_chunk) override;
 
 private:
 
