@@ -46,10 +46,10 @@ void ChunkManager::UpdateChunksToLoad() {
     const sf::Vector2f center = m_window->getView().getCenter();
     const sf::Vector2f size   = m_window->getView().getSize();
 
-    const float left   = center.x - size.x * 0.15f;
-    const float right  = center.x + size.x * 0.15f;
-    const float top    = center.y - size.y * 0.15f;
-    const float bottom = center.y + size.y * 0.15f;
+    const float left   = center.x - size.x * 0.55f;
+    const float right  = center.x + size.x * 0.55f;
+    const float top    = center.y - size.y * 0.55f;
+    const float bottom = center.y + size.y * 0.55f;
 
     int minChunkX = static_cast<int>(std::floor(left / CHUNK_SIZE_PX));
     int maxChunkX = static_cast<int>(std::floor(right / CHUNK_SIZE_PX));
@@ -109,7 +109,7 @@ void ChunkManager::LoadChunk(const ChunkID& l_cID) {
     //PreloadChunk(*chunk.get());
     auto workTask = [chunk, this]() {
         LoadChunkAsync(*chunk);
-        std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+        //std::this_thread::sleep_for(std::chrono::milliseconds(1500));
         chunk->SetChunkState(ChunkState::LOADED);
         UnlockChunk(chunk->GetChunkID());
     };
@@ -124,7 +124,7 @@ void ChunkManager::UnloadChunk(const ChunkID& l_cID) {
     //PreUnloadChunk(*chunk.get());
     auto workTask = [chunk, this]() {
         UnloadChunkAsync(*chunk);
-        std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+        //std::this_thread::sleep_for(std::chrono::milliseconds(1500));
         chunk->SetChunkState(ChunkState::UNLOADED);
         UnlockChunk(chunk->GetChunkID());
     };
