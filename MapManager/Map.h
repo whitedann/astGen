@@ -20,11 +20,13 @@ public:
 
     void LoadChunkAsync(Chunk& l_chunk) override;
     void UnloadChunkAsync(Chunk& l_chunk) override;
+    void Redraw(Chunk& l_chunk) override;
     void Draw(Chunk& l_chunk, sf::RenderWindow* l_wind) override;
 
 private:
 
     World* m_world;
+
     std::unordered_map<ChunkID, sf::Sprite*> m_mapChunks;
 
 };

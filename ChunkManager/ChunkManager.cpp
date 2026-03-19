@@ -30,8 +30,9 @@ void ChunkManager::UpdateLoadTasks() {
 
 void ChunkManager::UpdateUnloadTasks() {
     for (auto it = m_unloadChunkTasks.begin(); it != m_unloadChunkTasks.end();) {
-        auto& task = it->second;
+        auto& [chunkID, task] = *it;
         if (task.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+            m_chunks.erase(chunkID);
             it = m_unloadChunkTasks.erase(it);
         }
         else {
@@ -46,10 +47,10 @@ void ChunkManager::UpdateChunksToLoad() {
     const sf::Vector2f center = m_window->getView().getCenter();
     const sf::Vector2f size   = m_window->getView().getSize();
 
-    const float left   = center.x - size.x * 0.55f;
-    const float right  = center.x + size.x * 0.55f;
-    const float top    = center.y - size.y * 0.55f;
-    const float bottom = center.y + size.y * 0.55f;
+    const float left   = center.x - size.x * 0.25f;
+    const float right  = center.x + size.x * 0.25f;
+    const float top    = center.y - size.y * 0.25f;
+    const float bottom = center.y + size.y * 0.25f;
 
     int minChunkX = static_cast<int>(std::floor(left / CHUNK_SIZE_PX));
     int maxChunkX = static_cast<int>(std::floor(right / CHUNK_SIZE_PX));
