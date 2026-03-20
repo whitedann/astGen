@@ -7,6 +7,7 @@
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/Sprite.hpp>
 
+#include "MapChunk.h"
 #include "../ChunkManager/ChunkLoader.h"
 #include "../ChunkManager/Chunk.h"
 
@@ -20,14 +21,23 @@ public:
 
     void LoadChunkAsync(Chunk& l_chunk) override;
     void UnloadChunkAsync(Chunk& l_chunk) override;
-    void Redraw(Chunk& l_chunk) override;
-    void Draw(Chunk& l_chunk, sf::RenderWindow* l_wind) override;
+    void EndLoadChunk(const ChunkID& l_cID) override;
+    void EndUnloadChunk(const ChunkID& l_cID) override;
+
+    void Update(float l_dT);
+    void Draw(sf::RenderWindow* l_wind);
 
 private:
 
+    MapChunk& AddTempChunk(const ChunkID& l_chunk, const sf::Vector2i& l_cIndex);
+
+    void RemoveChunk(const ChunkID& l_chunk);
+
     World* m_world;
 
-    std::unordered_map<ChunkID, sf::Sprite*> m_mapChunks;
+    std::mutex m_tempMutex;
+    std::unordered_map<ChunkID, std::unique_ptr<MapChunk>> m_tempMapChunkData;
+    std::unordered_map<ChunkID, std::unique_ptr<MapChunk>> m_mapChunks;
 
 };
 

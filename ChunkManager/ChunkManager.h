@@ -27,7 +27,6 @@ public:
     ChunkManager(sf::RenderWindow* l_wind): m_window(l_wind) {}
 
     void Update(float l_dT);
-    void Draw(sf::RenderWindow& l_wind);
 
     void AddChunkLoader(ChunkLoader* l_chunkLoader) { m_chunkLoaders.push_back(l_chunkLoader); }
 
@@ -43,13 +42,16 @@ private:
     void LoadChunkAsync(Chunk& l_chunk) const;
     void UnloadChunkAsync(Chunk& l_chunk) const;
 
+    void EndLoadChunk(const ChunkID& l_cID) const;
+    void EndUnloadChunk(const ChunkID& l_cID) const;
+
     void LockChunk(const ChunkID &l_cID);
     void UnlockChunk(const ChunkID &l_cID);
     bool ChunkIsLocked(const ChunkID &l_cID);
 
     sf::RenderWindow* m_window;
 
-    std::unordered_map<ChunkID, std::unique_ptr<Chunk>> m_chunks;
+    std::unordered_map<ChunkID, std::shared_ptr<Chunk>> m_chunks;
     std::vector<ChunkLoader*> m_chunkLoaders;
     std::set<ChunkID> m_chunksToUnload;
     std::set<ChunkID> m_chunksLoaded;

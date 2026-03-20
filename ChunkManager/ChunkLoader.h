@@ -12,8 +12,11 @@ public:
     virtual void LoadChunkAsync(Chunk& l_chunk) = 0;
     virtual void UnloadChunkAsync(Chunk& l_chunk) = 0;
 
-    virtual void Redraw(Chunk& l_chunk);
-    virtual void Draw(Chunk& l_chunk, sf::RenderWindow* l_wind) = 0;
+    virtual void EndLoadChunk(const ChunkID& l_cID) = 0;
+    virtual void EndUnloadChunk(const ChunkID& l_cID) = 0;
+
+    //virtual void Redraw(Chunk& l_chunk);
+    //virtual void Draw(Chunk& l_chunk, sf::RenderWindow* l_wind) = 0;
 
 
 private:

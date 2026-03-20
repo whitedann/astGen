@@ -35,11 +35,9 @@ public:
 
 private:
 
-    ChunkState m_state;
+    std::atomic<ChunkState> m_state;
     ChunkID m_id;
     sf::Vector2i m_cIndex;
-
-
 
 };
 

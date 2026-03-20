@@ -9,9 +9,19 @@
 #include <SFML/Graphics/RectangleShape.hpp>
 #include "../World.h"
 
+void Map::Update(float l_dT) {
+
+}
+
 void Map::LoadChunkAsync(Chunk& l_chunk) {
+    // Asynchronous
+    ChunkID chunkID = l_chunk.GetChunkID();
     sf::Vector2i chunkIndex = l_chunk.GetChunkIndex();
 
+    std::unique_ptr<MapChunk> tempChunk =
+        std::make_unique<MapChunk>(
+        chunkID,
+        chunkIndex);
     for (int y = 0; y < CHUNK_SIZE_PX; y++) {
         for (int x = 0; x < CHUNK_SIZE_PX; x++) {
             // Convert local chunk coords to world coords
@@ -19,62 +29,78 @@ void Map::LoadChunkAsync(Chunk& l_chunk) {
             int worldY = chunkIndex.y * CHUNK_SIZE_PX + y;
             auto tile = m_world->GetTile(worldX, worldY);
             sf::Vector2i tileIndex = {x, y};
-            l_chunk.SetTile(tileIndex, tile.tileType);
+            tempChunk->SetTile(tileIndex, tile.tileType);
         }
     }
+    {
+        std::lock_guard lock(m_tempMutex);
+        m_tempMapChunkData.emplace(chunkID, std::move(tempChunk));
+    }
 }
+
+void Map::EndLoadChunk(const ChunkID &l_cID) {
+    std::unique_ptr<MapChunk> tempChunk;
+    {
+        std::lock_guard lock(m_tempMutex);
+
+        auto it = m_tempMapChunkData.find(l_cID);
+        if (it == m_tempMapChunkData.end())
+            return; // nothing ready yet
+
+        tempChunk = std::move(it->second);
+        m_tempMapChunkData.erase(it);
+    }
+
+    auto it = m_mapChunks.find(l_cID);
+    if (it != m_mapChunks.end())
+    {
+        it->second = std::move(tempChunk);
+    }
+    else
+    {
+        m_mapChunks.emplace(l_cID, std::move(tempChunk));
+    }}
 
 void Map::UnloadChunkAsync(Chunk& l_chunk) {
-    //std::cout << "UnloadChunkAsync" << std::endl;
+
 }
 
-void Map::Redraw(Chunk& l_chunk) {
-    size_t totalVerts = m_tilesToRedraw.size() * 4;
-    sf::VertexArray verts;
-    verts.resize(totalVerts);
-    int vertIndex = 0;
-    for (auto [index, type] : m_tilesToRedraw) {
-        //if (type == TileType::Empty) { continue; }
-        int indexX = index / CHUNK_SIZE_PX;
-        int indexY = index % CHUNK_SIZE_PX;
-        sf::Vertex* quad = &verts[vertIndex];
-        sf::Color tileColor;
-        switch (type) {
-            case TileType::Empty:        tileColor = sf::Color::Transparent; break;
-            case TileType::Dust:         tileColor = sf::Color(200,200,200); break;
-            case TileType::Rock:         tileColor = sf::Color(100,100,100); break;
-            case TileType::DenseRock:    tileColor = sf::Color(50,50,50); break;
-            case TileType::SuperDenseRock: tileColor = sf::Color::Green; break;
-            default:                     tileColor = sf::Color::Magenta; break;
+void Map::EndUnloadChunk(const ChunkID& l_cID) {
+    RemoveChunk(l_cID);
+}
+
+void Map::Draw(sf::RenderWindow* l_wind) {
+    for (auto& chunk : m_mapChunks) {
+        if (chunk.second->NeedsRedraw()) {
+            chunk.second->Redraw();
         }
-        sf::Vector2i tilePos = { indexX, indexY };
-        quad[0].position = { (float)(tilePos.x), (float)(tilePos.y)};
-        quad[1].position = { (float)((tilePos.x + 1)), (float)(tilePos.y)};
-        quad[2].position = { (float)((tilePos.x + 1)), (float)((tilePos.y + 1))};
-        quad[3].position = { (float)(tilePos.x), (float)((tilePos.y + 1))};
-        quad[0].color = tileColor;
-        quad[1].color = tileColor;
-        quad[2].color = tileColor;
-        quad[3].color = tileColor;
-        vertIndex += 4;
+        l_wind->draw(*chunk.second->GetSprite());
+
+        sf::Vector2i index = chunk.second.get()->GetIndex();
+        sf::RectangleShape rect;
+        rect.setFillColor({0, 255 , 0, 40});
+        rect.setOutlineColor({0, 0, 0, 100});
+        rect.setOutlineThickness(1);
+        rect.setSize({CHUNK_SIZE_PX - 2.f, CHUNK_SIZE_PX - 2.f});
+        rect.setPosition({(float)(CHUNK_SIZE_PX * index.x) + 1.f, (float)(CHUNK_SIZE_PX * index.y) + 1.f });
+        l_wind->draw(rect);
     }
-    m_tilesToRedraw.clear();
-    sf::RenderStates states = sf::RenderStates::Default;
-    states.blendMode = sf::BlendNone;
-    m_texture->draw(verts, states);
-    m_texture->display();
-    m_sprite->setTexture(m_texture->getTexture());
 }
 
-void Map::Draw(Chunk& l_chunk, sf::RenderWindow* l_wind) {
-    l_wind->draw(*l_chunk.GetSprite());
+MapChunk& Map::AddTempChunk(const ChunkID &l_chunkID, const sf::Vector2i& l_cIndex) {
+    std::lock_guard<std::mutex> lock(m_tempMutex);
 
-    sf::Vector2i index = l_chunk.GetChunkIndex();
-    sf::RectangleShape rect;
-    rect.setFillColor({0, 255 , 0, 20});
-    rect.setOutlineColor({0, 0, 0, 100});
-    rect.setOutlineThickness(2);
-    rect.setSize({CHUNK_SIZE_PX - 4.f, CHUNK_SIZE_PX - 4.f});
-    rect.setPosition({(float)(CHUNK_SIZE_PX * index.x) + 2.f, (float)(CHUNK_SIZE_PX * index.y) + 2.f });
-    l_wind->draw(rect);
+    auto it = m_tempMapChunkData.find(l_chunkID);
+    if (it != m_tempMapChunkData.end())
+        return *(it->second);
+
+    auto [insertIt, success] = m_tempMapChunkData.emplace(
+        l_chunkID,
+        std::make_unique<MapChunk>(l_chunkID, l_cIndex)
+    );
+    return *(insertIt->second);
+}
+
+void Map::RemoveChunk(const ChunkID &l_chunk) {
+    m_mapChunks.erase(l_chunk);
 }

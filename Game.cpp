@@ -11,12 +11,14 @@ Game::Game() {
 void Game::Update(float l_dT) const {
     m_camera->Update(*m_renderWindow);
     m_chunkManager->Update(l_dT);
+    m_map->Update(l_dT);
 }
 
 void Game::Draw() const {
     m_renderWindow->clear();
-    m_chunkManager->Draw(*m_renderWindow);
+    //m_chunkManager->Draw(*m_renderWindow);
     //m_world->Draw(*m_renderWindow);
+    m_map->Draw(m_renderWindow.get());
     m_renderWindow->display();
 }
 
