@@ -10,6 +10,7 @@
 #include <shared_mutex>
 #include <unordered_set>
 #include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/Graphics/Text.hpp>
 
 #include "Chunk.h"
 #include "ChunkLoader.h"
@@ -29,26 +30,52 @@ class ChunkManager {
 
 public:
 
-    ChunkManager(sf::RenderWindow* l_wind): m_window(l_wind) {}
+    ChunkManager(sf::RenderWindow* l_wind): m_window(l_wind) {
+        bool loaded = m_font.openFromFile("Thintel.ttf");
+        if(!loaded) {
+            std::cerr<<"Error loading font"<<std::endl;
+        }
+        m_unloadQueuedSetText = new sf::Text(m_font, "");
+        m_unloadQueuedSetText->setCharacterSize(32);
+        m_unloadQueuedSetText->setFillColor(sf::Color::White);
+        m_unloadQueuedSetText->setPosition({5.f, 5.f});
+
+        m_unloadQueueText = new sf::Text(m_font, "");
+        m_unloadQueueText->setCharacterSize(32);
+        m_unloadQueueText->setFillColor(sf::Color::White);
+        m_unloadQueueText->setPosition({5.f, 37.f});
+
+        m_loadQueueText = new sf::Text(m_font, "");
+        m_loadQueueText->setCharacterSize(32);
+        m_loadQueueText->setFillColor(sf::Color::White);
+        m_loadQueueText->setPosition({5.f, 69.f});
+
+        m_loadQueuedSetText = new sf::Text(m_font, "");
+        m_loadQueuedSetText->setCharacterSize(32);
+        m_loadQueuedSetText->setFillColor(sf::Color::White);
+        m_loadQueuedSetText->setPosition({5.f, 101.f});
+    }
 
     void Update(float l_dT);
+    void Draw(sf::RenderWindow* l_wind);
 
     void AddChunkLoader(ChunkLoader* l_chunkLoader) { m_chunkLoaders.push_back(l_chunkLoader); }
 
 private:
 
-    void UpdateLoadTasks();
-    void UpdateUnloadTasks();
+    void FinishLoadTasks();
+    void FinishUnloadTasks();
     void UpdateChunksToLoad();
     void UpdateChunksToUnload();
 
-    void LoadChunk(ChunkID l_cID);
-    void UnloadChunk(ChunkID l_cID);
+    void QueueLoadChunk(ChunkID l_cID);
+    void QueueUnloadChunk(ChunkID l_cID);
 
     void CancelLoad(const ChunkID &l_cID);
 
-    void ProcessLoadQueue();
+    void CancelUnload(const ChunkID &l_cID);
 
+    void ProcessLoadQueue();
     void ProcessUnloadQueue();
 
     void LoadChunkAsync(Chunk& l_chunk) const;
@@ -80,6 +107,14 @@ private:
 
     std::unordered_map<ChunkID, bool> m_chunkLocks;
     std::shared_mutex m_lockMutex;
+
+    /** DEBUG **/
+    sf::Font m_font;
+    sf::Text* m_loadQueueText;
+    sf::Text* m_loadQueuedSetText;
+    sf::Text* m_unloadQueueText;
+    sf::Text* m_unloadQueuedSetText;
+
 
 };
 

@@ -10,8 +10,10 @@ static constexpr int CHUNK_SIZE_PX = 32;
 static constexpr int TILE_SIZE_PX = 1;
 
 enum class ChunkState {
+    QUEUED_TO_LOAD,
     LOADING,
     LOADED,
+    QUEUED_TO_UNLOAD,
     UNLOADING,
     UNLOADED,
 };

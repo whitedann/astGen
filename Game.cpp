@@ -16,9 +16,8 @@ void Game::Update(float l_dT) const {
 
 void Game::Draw() const {
     m_renderWindow->clear();
-    //m_chunkManager->Draw(*m_renderWindow);
-    //m_world->Draw(*m_renderWindow);
     m_map->Draw(m_renderWindow.get());
+    m_chunkManager->Draw(m_renderWindow.get());
     m_renderWindow->display();
 }
 
