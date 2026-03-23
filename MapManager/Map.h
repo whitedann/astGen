@@ -4,6 +4,7 @@
 
 #ifndef ASTGEN_MAP_H
 #define ASTGEN_MAP_H
+#include <mutex>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/Sprite.hpp>
 

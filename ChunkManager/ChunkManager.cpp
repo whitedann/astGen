@@ -9,6 +9,10 @@
 void ChunkManager::Update(float l_dT) {
     UpdateLoadTasks();
     UpdateUnloadTasks();
+
+    ProcessLoadQueue();
+    ProcessUnloadQueue();
+
     UpdateChunksToLoad();
     UpdateChunksToUnload();
 }
@@ -48,10 +52,10 @@ void ChunkManager::UpdateChunksToLoad() {
     const sf::Vector2f center = m_window->getView().getCenter();
     const sf::Vector2f size   = m_window->getView().getSize();
 
-    const float left   = center.x - size.x * 0.55f;
-    const float right  = center.x + size.x * 0.55f;
-    const float top    = center.y - size.y * 0.55f;
-    const float bottom = center.y + size.y * 0.55f;
+    const float left   = center.x - size.x * 0.5f;
+    const float right  = center.x + size.x * 0.5f;
+    const float top    = center.y - size.y * 0.5f;
+    const float bottom = center.y + size.y * 0.5f;
 
     int minChunkX = static_cast<int>(std::floor(left / CHUNK_SIZE_PX));
     int maxChunkX = static_cast<int>(std::floor(right / CHUNK_SIZE_PX));
@@ -104,33 +108,94 @@ void ChunkManager::UpdateChunksToUnload() {
     }
 }
 
-void ChunkManager::LoadChunk(const ChunkID& l_cID) {
-    auto chunk = m_chunks[l_cID];
+void ChunkManager::LoadChunk(ChunkID l_cID) {
+
+    if (ChunkIsLocked(l_cID)) return;
+    if (m_loadQueuedSet.contains(l_cID)) return;
+
+    //std::cout << "Loading " << l_cID << std::endl;
+
     LockChunk(l_cID);
-    chunk->SetChunkState(ChunkState::LOADING);
-    //PreloadChunk(*chunk.get());
-    auto workTask = [chunk, this]() {
-        LoadChunkAsync(*chunk);
-        //std::this_thread::sleep_for(std::chrono::milliseconds(1500));
-        chunk->SetChunkState(ChunkState::LOADED);
-        UnlockChunk(chunk->GetChunkID());
-    };
-    m_loadChunkTasks.insert({ l_cID, std::async(std::launch::async, workTask) });
+    m_loadQueue.push_back(l_cID);
+    m_loadQueuedSet.insert(l_cID);
 }
 
-void ChunkManager::UnloadChunk(const ChunkID& l_cID) {
-    auto chunk = m_chunks[l_cID];
+void ChunkManager::UnloadChunk(ChunkID l_cID) {
+    if (m_loadQueuedSet.contains(l_cID)) {
+        CancelLoad(l_cID);
+        return;
+    }
+    if (m_unloadQueuedSet.contains(l_cID)) return;
+
+    if (ChunkIsLocked(l_cID)) return;
+
+    //std::cout << "Unloading " << l_cID << std::endl;
+
     LockChunk(l_cID);
-    chunk->SetChunkState(ChunkState::UNLOADING);
-    m_chunksLoaded.erase(l_cID);
-    //PreUnloadChunk(*chunk.get());
-    auto workTask = [chunk, this]() {
-        UnloadChunkAsync(*chunk);
-        //std::this_thread::sleep_for(std::chrono::milliseconds(1500));
-        chunk->SetChunkState(ChunkState::UNLOADED);
-        UnlockChunk(chunk->GetChunkID());
-    };
-    m_unloadChunkTasks.insert({ l_cID, std::async(std::launch::async, workTask) });
+    m_unloadQueue.push_back(l_cID);
+    m_unloadQueuedSet.insert(l_cID);
+}
+
+void ChunkManager::CancelLoad(const ChunkID& l_cID) {
+    if (!m_loadQueuedSet.contains(l_cID)) return;
+
+    m_loadQueuedSet.erase(l_cID);
+
+    // remove from deque (linear, but fine unless huge)
+    m_loadQueue.erase(
+        std::remove(m_loadQueue.begin(), m_loadQueue.end(), l_cID),
+        m_loadQueue.end()
+    );
+
+    UnlockChunk(l_cID);
+}
+
+void ChunkManager::ProcessLoadQueue() {
+    while (!m_loadQueue.empty() &&
+           m_loadChunkTasks.size() < MAX_CONCURRENT_LOADS)
+    {
+        ChunkID id = m_loadQueue.front();
+        m_loadQueue.pop_front();
+        m_loadQueuedSet.erase(id);
+
+        auto chunk = m_chunks[id];
+        chunk->SetChunkState(ChunkState::LOADING);
+
+        auto workTask = [chunk, this]() {
+            LoadChunkAsync(*chunk);
+            chunk->SetChunkState(ChunkState::LOADED);
+            UnlockChunk(chunk->GetChunkID());
+        };
+
+        m_loadChunkTasks.insert({
+            id,
+            std::async(std::launch::async, workTask)
+        });
+    }
+}
+
+void ChunkManager::ProcessUnloadQueue() {
+    while (!m_unloadQueue.empty() &&
+           m_unloadChunkTasks.size() < MAX_CONCURRENT_UNLOADS)
+    {
+        ChunkID id = m_unloadQueue.front();
+        m_unloadQueue.pop_front();
+
+        auto chunk = m_chunks[id];
+        chunk->SetChunkState(ChunkState::UNLOADING);
+        m_chunksLoaded.erase(id);
+
+        auto workTask = [chunk, this]() {
+            UnloadChunkAsync(*chunk);
+            chunk->SetChunkState(ChunkState::UNLOADED);
+            UnlockChunk(chunk->GetChunkID());
+        };
+
+        m_unloadChunkTasks.insert({
+            id,
+            std::async(std::launch::async, workTask)
+        });
+    }
 }
 
 void ChunkManager::LoadChunkAsync(Chunk& l_chunk) const {

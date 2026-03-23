@@ -4,13 +4,18 @@
 
 #ifndef ASTGEN_CHUNKMANAGER_H
 #define ASTGEN_CHUNKMANAGER_H
+#include <deque>
 #include <future>
 #include <set>
 #include <shared_mutex>
+#include <unordered_set>
 #include <SFML/Graphics/RenderWindow.hpp>
 
 #include "Chunk.h"
 #include "ChunkLoader.h"
+
+static int MAX_CONCURRENT_LOADS = 20;
+static int MAX_CONCURRENT_UNLOADS = 20;
 
 static ChunkID MakeChunkID(const sf::Vector2i& l_cIndex) {
     return l_cIndex.x * 1000 + l_cIndex.y;
@@ -37,8 +42,15 @@ private:
     void UpdateChunksToLoad();
     void UpdateChunksToUnload();
 
-    void LoadChunk(const ChunkID &l_cID);
-    void UnloadChunk(const ChunkID &l_cID);
+    void LoadChunk(ChunkID l_cID);
+    void UnloadChunk(ChunkID l_cID);
+
+    void CancelLoad(const ChunkID &l_cID);
+
+    void ProcessLoadQueue();
+
+    void ProcessUnloadQueue();
+
     void LoadChunkAsync(Chunk& l_chunk) const;
     void UnloadChunkAsync(Chunk& l_chunk) const;
 
@@ -53,6 +65,12 @@ private:
 
     std::unordered_map<ChunkID, std::shared_ptr<Chunk>> m_chunks;
     std::vector<ChunkLoader*> m_chunkLoaders;
+
+    std::deque<ChunkID> m_loadQueue;
+    std::unordered_set<ChunkID> m_loadQueuedSet;
+    std::deque<ChunkID> m_unloadQueue;
+    std::unordered_set<ChunkID> m_unloadQueuedSet;
+
     std::set<ChunkID> m_chunksToUnload;
     std::set<ChunkID> m_chunksLoaded;
     std::set<ChunkID> m_chunksInRange;

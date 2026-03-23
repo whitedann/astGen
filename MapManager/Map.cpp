@@ -14,7 +14,6 @@ void Map::Update(float l_dT) {
 }
 
 void Map::LoadChunkAsync(Chunk& l_chunk) {
-    // Asynchronous
     ChunkID chunkID = l_chunk.GetChunkID();
     sf::Vector2i chunkIndex = l_chunk.GetChunkIndex();
 
@@ -58,6 +57,7 @@ void Map::EndLoadChunk(const ChunkID &l_cID) {
     }
     else
     {
+        tempChunk->SetupTexture();
         m_mapChunks.emplace(l_cID, std::move(tempChunk));
     }}
 

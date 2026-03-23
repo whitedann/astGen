@@ -19,14 +19,18 @@ public:
     MapChunk(const ChunkID& l_cID, const sf::Vector2i& l_cIndex) {
         m_chunkID = l_cID;
         m_cIndex = l_cIndex;
+    }
+
+    void SetupTexture() {
+        // Can only call this on main thread!
         m_texture = std::make_unique<sf::RenderTexture>();
         m_texture->resize({CHUNK_SIZE_PX, CHUNK_SIZE_PX});
         m_texture->clear({ 0, 0, 0, 0 });
         m_sprite = std::make_unique<sf::Sprite>(m_texture->getTexture());
         m_sprite->setTextureRect(sf::IntRect({ 0,0 }, { CHUNK_SIZE_PX, CHUNK_SIZE_PX}));
         m_sprite->setPosition(
-        {static_cast<float>(l_cIndex.x * CHUNK_SIZE_PX),
-            static_cast<float>(l_cIndex.y * CHUNK_SIZE_PX)}
+        {static_cast<float>(m_cIndex.x * CHUNK_SIZE_PX),
+            static_cast<float>(m_cIndex.y * CHUNK_SIZE_PX)}
         );
         m_sprite->setTexture(m_texture->getTexture());
     }
