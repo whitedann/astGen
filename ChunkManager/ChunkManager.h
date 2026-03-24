@@ -15,8 +15,8 @@
 #include "Chunk.h"
 #include "ChunkLoader.h"
 
-static int MAX_CONCURRENT_LOADS = 20;
-static int MAX_CONCURRENT_UNLOADS = 20;
+static int MAX_CONCURRENT_LOADS = 5;
+static int MAX_CONCURRENT_UNLOADS = 100;
 
 static ChunkID MakeChunkID(const sf::Vector2i& l_cIndex) {
     return l_cIndex.x * 1000 + l_cIndex.y;
@@ -24,6 +24,21 @@ static ChunkID MakeChunkID(const sf::Vector2i& l_cIndex) {
 
 static sf::Vector2i MakeChunkIndex(const ChunkID l_cID) {
     return { l_cID / 1000, l_cID % 1000 };
+}
+
+static sf::Vector2f GetChunkWorldCenter(const ChunkID& id) {
+    auto [x, y] = MakeChunkIndex(id);
+
+    return {
+        (x + 0.5f) * CHUNK_SIZE_PX,
+        (y + 0.5f) * CHUNK_SIZE_PX
+    };
+}
+
+static float DistanceSq(const sf::Vector2f& a, const sf::Vector2f& b) {
+    float dx = a.x - b.x;
+    float dy = a.y - b.y;
+    return dx * dx + dy * dy;
 }
 
 class ChunkManager {

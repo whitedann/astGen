@@ -16,7 +16,7 @@ void ChunkManager::Update(float l_dT) {
     UpdateChunksToLoad();
     UpdateChunksToUnload();
 
-    std::string textString = std::string("Load Queued Set: " + std::to_string(m_loadQueuedSet.size()));
+    std::string textString = std::string("Total Loaded: " + std::to_string(m_chunksLoaded.size()));
     m_loadQueuedSetText->setString(textString);
     textString = "Load Queued: " + std::to_string(m_loadQueue.size());
     m_loadQueueText->setString(textString);
@@ -100,7 +100,33 @@ void ChunkManager::UpdateChunksToLoad() {
         }
     }
 
-    for (auto& cID: m_chunksInRange) {
+    std::vector<ChunkID> sortedChunks(
+    m_chunksInRange.begin(),
+    m_chunksInRange.end()
+);
+
+    auto chunkCenter = [&](ChunkID id) {
+        auto [cx, cy] = MakeChunkIndex(id);
+        return sf::Vector2f(
+            (cx + 0.5f) * CHUNK_SIZE_PX,
+            (cy + 0.5f) * CHUNK_SIZE_PX
+        );
+    };
+
+    auto distSq = [&](const sf::Vector2f& a, const sf::Vector2f& b) {
+        float dx = a.x - b.x;
+        float dy = a.y - b.y;
+        return dx * dx + dy * dy;
+    };
+
+    std::sort(sortedChunks.begin(), sortedChunks.end(),
+        [&](ChunkID a, ChunkID b) {
+            float da = distSq(chunkCenter(a), center);
+            float db = distSq(chunkCenter(b), center);
+            return da < db; // closest first
+        });
+
+    for (auto& cID: sortedChunks) {
         auto cIndex = MakeChunkIndex(cID);
         auto [it, inserted] =
             m_chunks.try_emplace(
@@ -138,6 +164,17 @@ void ChunkManager::UpdateChunksToLoad() {
             }
         }
     }
+    std::vector<ChunkID> sortedUnload(
+    m_chunksToUnload.begin(),
+    m_chunksToUnload.end()
+)   ;
+
+    std::sort(sortedUnload.begin(), sortedUnload.end(),
+        [&](ChunkID a, ChunkID b) {
+            float da = distSq(chunkCenter(a), center);
+            float db = distSq(chunkCenter(b), center);
+            return da > db; // furthest first
+        });
     for (auto& cID : m_chunksToUnload) {
         QueueUnloadChunk(cID);
     }
@@ -154,30 +191,46 @@ void ChunkManager::UpdateChunksToUnload() {
 }
 
 void ChunkManager::QueueLoadChunk(ChunkID l_cID) {
-
+    auto it = m_chunks.find(l_cID);
+    if (it == m_chunks.end()) return;
     if (ChunkIsLocked(l_cID)) return;
     if (m_loadQueuedSet.contains(l_cID)) return;
+    ChunkState state = it->second->GetChunkState();
+    if (state == ChunkState::LOADING ||
+        state == ChunkState::QUEUED_TO_LOAD ||
+        state == ChunkState::LOADED) {
+        return;
+    }
 
     LockChunk(l_cID);
     m_loadQueue.push_back(l_cID);
     m_loadQueuedSet.insert(l_cID);
+    it->second->SetChunkState(ChunkState::QUEUED_TO_LOAD);
 }
 
 void ChunkManager::QueueUnloadChunk(ChunkID l_cID) {
+    auto it = m_chunks.find(l_cID);
+    if (it == m_chunks.end()) return;
+
+    ChunkState state = it->second->GetChunkState();
+
+    if (state == ChunkState::UNLOADING ||
+    state == ChunkState::QUEUED_TO_UNLOAD ||
+    state == ChunkState::UNLOADED) {
+        return;
+    }
+
     if (m_loadQueuedSet.contains(l_cID)) {
         CancelLoad(l_cID);
         return;
     }
     if (m_unloadQueuedSet.contains(l_cID)) return;
-
     if (ChunkIsLocked(l_cID)) return;
-
-    //std::cout << "Unloading " << l_cID << std::endl;
 
     LockChunk(l_cID);
     m_unloadQueue.push_back(l_cID);
-    std::cout << "Inserting " << l_cID << std::endl;
     m_unloadQueuedSet.insert(l_cID);
+    it->second->SetChunkState(ChunkState::UNLOADED);
 }
 
 void ChunkManager::CancelLoad(const ChunkID& l_cID) {
@@ -217,7 +270,6 @@ void ChunkManager::ProcessLoadQueue() {
 
         auto workTask = [chunk, this]() {
             LoadChunkAsync(*chunk);
-
             UnlockChunk(chunk->GetChunkID());
         };
 
@@ -234,7 +286,6 @@ void ChunkManager::ProcessUnloadQueue() {
     {
         ChunkID id = m_unloadQueue.front();
         m_unloadQueue.pop_front();
-        std::cout << "Unloading chunk " << id << "\n";
         m_unloadQueuedSet.erase(id);
 
         auto chunk = m_chunks[id];
