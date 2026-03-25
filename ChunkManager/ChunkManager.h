@@ -53,22 +53,22 @@ public:
         m_unloadQueuedSetText = new sf::Text(m_font, "");
         m_unloadQueuedSetText->setCharacterSize(32);
         m_unloadQueuedSetText->setFillColor(sf::Color::White);
-        m_unloadQueuedSetText->setPosition({5.f, 5.f});
+        m_unloadQueuedSetText->setPosition({10.f, 5.f});
 
         m_unloadQueueText = new sf::Text(m_font, "");
         m_unloadQueueText->setCharacterSize(32);
         m_unloadQueueText->setFillColor(sf::Color::White);
-        m_unloadQueueText->setPosition({5.f, 37.f});
+        m_unloadQueueText->setPosition({10.f, 37.f});
 
         m_loadQueueText = new sf::Text(m_font, "");
         m_loadQueueText->setCharacterSize(32);
         m_loadQueueText->setFillColor(sf::Color::White);
-        m_loadQueueText->setPosition({5.f, 69.f});
+        m_loadQueueText->setPosition({10.f, 69.f});
 
         m_loadQueuedSetText = new sf::Text(m_font, "");
         m_loadQueuedSetText->setCharacterSize(32);
         m_loadQueuedSetText->setFillColor(sf::Color::White);
-        m_loadQueuedSetText->setPosition({5.f, 101.f});
+        m_loadQueuedSetText->setPosition({10.f, 101.f});
     }
 
     void Update(float l_dT);
@@ -81,7 +81,6 @@ private:
     void FinishLoadTasks();
     void FinishUnloadTasks();
     void UpdateChunksToLoad();
-    void UpdateChunksToUnload();
 
     void QueueLoadChunk(ChunkID l_cID);
     void QueueUnloadChunk(ChunkID l_cID);
@@ -99,8 +98,6 @@ private:
     void EndLoadChunk(const ChunkID& l_cID) const;
     void EndUnloadChunk(const ChunkID& l_cID) const;
 
-    void LockChunk(const ChunkID &l_cID);
-    void UnlockChunk(const ChunkID &l_cID);
     bool ChunkIsLocked(const ChunkID &l_cID);
 
     sf::RenderWindow* m_window;
@@ -108,20 +105,12 @@ private:
     std::unordered_map<ChunkID, std::shared_ptr<Chunk>> m_chunks;
     std::vector<ChunkLoader*> m_chunkLoaders;
 
-    std::deque<ChunkID> m_loadQueue;
-    std::unordered_set<ChunkID> m_loadQueuedSet;
-    std::deque<ChunkID> m_unloadQueue;
-    std::unordered_set<ChunkID> m_unloadQueuedSet;
-
-    std::set<ChunkID> m_chunksToUnload;
-    std::set<ChunkID> m_chunksLoaded;
     std::set<ChunkID> m_chunksInRange;
 
+    std::deque<ChunkID> m_loadQueue;
+    std::deque<ChunkID> m_unloadQueue;
     std::unordered_map<ChunkID, std::future<void>> m_loadChunkTasks;
     std::unordered_map<ChunkID, std::future<void>> m_unloadChunkTasks;
-
-    std::unordered_map<ChunkID, bool> m_chunkLocks;
-    std::shared_mutex m_lockMutex;
 
     /** DEBUG **/
     sf::Font m_font;

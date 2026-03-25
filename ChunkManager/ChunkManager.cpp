@@ -14,13 +14,12 @@ void ChunkManager::Update(float l_dT) {
     ProcessUnloadQueue();
 
     UpdateChunksToLoad();
-    UpdateChunksToUnload();
 
-    std::string textString = std::string("Total Loaded: " + std::to_string(m_chunksLoaded.size()));
+    std::string textString = std::string("DISABLED");
     m_loadQueuedSetText->setString(textString);
     textString = "Load Queued: " + std::to_string(m_loadQueue.size());
     m_loadQueueText->setString(textString);
-    textString = "Unload Queued Set: " + std::to_string(m_unloadQueuedSet.size());
+    textString = "DISABLED";
     m_unloadQueuedSetText->setString(textString);
     textString = "Unload Queued: " + std::to_string(m_unloadQueue.size());
     m_unloadQueueText->setString(textString);
@@ -43,7 +42,6 @@ void ChunkManager::FinishLoadTasks() {
             Chunk* chunk = m_chunks[it->first].get();
             chunk->SetChunkState(ChunkState::LOADED);
             EndLoadChunk(it->first);
-            m_chunksLoaded.insert(it->first);
             it = m_loadChunkTasks.erase(it);
         }
         else {
@@ -158,34 +156,18 @@ void ChunkManager::UpdateChunksToLoad() {
                 break;
             }
             case ChunkState::QUEUED_TO_UNLOAD: {
+                // Its unloaded, cancel unload
                 CancelUnload(chunk.GetChunkID());
-                QueueLoadChunk(chunk.GetChunkID());
                 break;
             }
         }
     }
-    std::vector<ChunkID> sortedUnload(
-    m_chunksToUnload.begin(),
-    m_chunksToUnload.end()
-)   ;
 
-    std::sort(sortedUnload.begin(), sortedUnload.end(),
-        [&](ChunkID a, ChunkID b) {
-            float da = distSq(chunkCenter(a), center);
-            float db = distSq(chunkCenter(b), center);
-            return da > db; // furthest first
-        });
-    for (auto& cID : m_chunksToUnload) {
-        QueueUnloadChunk(cID);
-    }
-}
-
-void ChunkManager::UpdateChunksToUnload() {
-    m_chunksToUnload.clear();
-    for (auto& loadedChunk : m_chunksLoaded) {
-        auto result = m_chunksInRange.find(loadedChunk);
-        if (result == m_chunksInRange.end()) {
-            m_chunksToUnload.insert(loadedChunk);
+    for (auto& [id, chunk] : m_chunks) {
+        if (!m_chunksInRange.contains(id) &&
+            chunk->GetChunkState() == ChunkState::LOADED)
+        {
+            QueueUnloadChunk(id);
         }
     }
 }
@@ -194,7 +176,6 @@ void ChunkManager::QueueLoadChunk(ChunkID l_cID) {
     auto it = m_chunks.find(l_cID);
     if (it == m_chunks.end()) return;
     if (ChunkIsLocked(l_cID)) return;
-    if (m_loadQueuedSet.contains(l_cID)) return;
     ChunkState state = it->second->GetChunkState();
     if (state == ChunkState::LOADING ||
         state == ChunkState::QUEUED_TO_LOAD ||
@@ -202,10 +183,8 @@ void ChunkManager::QueueLoadChunk(ChunkID l_cID) {
         return;
     }
 
-    LockChunk(l_cID);
-    m_loadQueue.push_back(l_cID);
-    m_loadQueuedSet.insert(l_cID);
     it->second->SetChunkState(ChunkState::QUEUED_TO_LOAD);
+    m_loadQueue.push_back(l_cID);
 }
 
 void ChunkManager::QueueUnloadChunk(ChunkID l_cID) {
@@ -214,47 +193,33 @@ void ChunkManager::QueueUnloadChunk(ChunkID l_cID) {
 
     ChunkState state = it->second->GetChunkState();
 
-    if (state == ChunkState::UNLOADING ||
-    state == ChunkState::QUEUED_TO_UNLOAD ||
-    state == ChunkState::UNLOADED) {
+    if (state == ChunkState::UNLOADING || state == ChunkState::QUEUED_TO_UNLOAD || state == ChunkState::UNLOADED) {
         return;
     }
 
-    if (m_loadQueuedSet.contains(l_cID)) {
+    if (state == ChunkState::QUEUED_TO_LOAD) {
         CancelLoad(l_cID);
+        it->second->SetChunkState(ChunkState::UNLOADED);
         return;
     }
-    if (m_unloadQueuedSet.contains(l_cID)) return;
     if (ChunkIsLocked(l_cID)) return;
 
-    LockChunk(l_cID);
-    m_unloadQueue.push_back(l_cID);
-    m_unloadQueuedSet.insert(l_cID);
     it->second->SetChunkState(ChunkState::UNLOADED);
+    m_unloadQueue.push_back(l_cID);
 }
 
 void ChunkManager::CancelLoad(const ChunkID& l_cID) {
-    if (!m_loadQueuedSet.contains(l_cID)) return;
-
-    m_loadQueuedSet.erase(l_cID);
-
-    // remove from deque (linear, but fine unless huge)
     m_loadQueue.erase(
         std::remove(m_loadQueue.begin(), m_loadQueue.end(), l_cID),
         m_loadQueue.end()
     );
-
-    UnlockChunk(l_cID);
 }
 
 void ChunkManager::CancelUnload(const ChunkID& l_cID) {
-    if (!m_unloadQueuedSet.contains(l_cID)) return;
-    m_unloadQueuedSet.erase(l_cID);
     m_unloadQueue.erase(
         std::remove(m_unloadQueue.begin(), m_unloadQueue.end(), l_cID),
         m_unloadQueue.end()
     );
-    UnlockChunk(l_cID);
 }
 
 void ChunkManager::ProcessLoadQueue() {
@@ -263,14 +228,14 @@ void ChunkManager::ProcessLoadQueue() {
     {
         ChunkID id = m_loadQueue.front();
         m_loadQueue.pop_front();
-        m_loadQueuedSet.erase(id);
 
-        auto chunk = m_chunks[id];
+        auto it = m_chunks.find(id);
+        if (it == m_chunks.end()) continue;
+        auto& chunk = it->second;
         chunk->SetChunkState(ChunkState::LOADING);
 
         auto workTask = [chunk, this]() {
             LoadChunkAsync(*chunk);
-            UnlockChunk(chunk->GetChunkID());
         };
 
         m_loadChunkTasks.insert({
@@ -286,15 +251,14 @@ void ChunkManager::ProcessUnloadQueue() {
     {
         ChunkID id = m_unloadQueue.front();
         m_unloadQueue.pop_front();
-        m_unloadQueuedSet.erase(id);
 
-        auto chunk = m_chunks[id];
+        auto it = m_chunks.find(id);
+        if (it == m_chunks.end()) continue;
+        auto& chunk = it->second;
         chunk->SetChunkState(ChunkState::UNLOADING);
-        m_chunksLoaded.erase(id);
 
         auto workTask = [chunk, this]() {
             UnloadChunkAsync(*chunk);
-            UnlockChunk(chunk->GetChunkID());
         };
 
         m_unloadChunkTasks.insert({
@@ -328,22 +292,13 @@ void ChunkManager::EndUnloadChunk(const ChunkID& l_cID) const {
     }
 }
 
-void ChunkManager::LockChunk(const ChunkID& l_cID) {
-    std::unique_lock lock(m_lockMutex);
-    m_chunkLocks[l_cID] = true;
-}
-
-void ChunkManager::UnlockChunk(const ChunkID& l_cID) {
-    std::unique_lock lock(m_lockMutex);
-    m_chunkLocks[l_cID] = false;
-}
-
 bool ChunkManager::ChunkIsLocked(const ChunkID& l_cID) {
-    std::shared_lock lock(m_lockMutex);
-    auto entry = m_chunkLocks.find(l_cID);
-    if (entry == m_chunkLocks.end()) { return false; }
-    return entry->second;
+    auto it = m_chunks.find(l_cID);
+    if (it == m_chunks.end()) return false;
+    auto& chunk = it->second;
+    auto state = chunk->GetChunkState();
+    if (state != ChunkState::UNLOADED && state != ChunkState::LOADED) {
+        return true;
+    }
+    return false;
 }
-
-
-
