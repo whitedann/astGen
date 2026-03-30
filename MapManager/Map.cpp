@@ -8,18 +8,18 @@
 #include <ostream>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include "../World.h"
+#include "../ChunkManager/ChunkManager.h"
 
 void Map::Update(float l_dT) {
 
 }
 
-void Map::LoadChunkAsync(Chunk& l_chunk) {
-    ChunkID chunkID = l_chunk.GetChunkID();
-    sf::Vector2i chunkIndex = l_chunk.GetChunkIndex();
+void Map::LoadChunkAsync(ChunkID l_cID) {
 
+    sf::Vector2i chunkIndex = MakeChunkIndex(l_cID);
     std::unique_ptr<MapChunk> tempChunk =
         std::make_unique<MapChunk>(
-        chunkID,
+        l_cID,
         chunkIndex);
     for (int y = 0; y < CHUNK_SIZE_PX; y++) {
         for (int x = 0; x < CHUNK_SIZE_PX; x++) {
@@ -33,11 +33,11 @@ void Map::LoadChunkAsync(Chunk& l_chunk) {
     }
     {
         std::lock_guard lock(m_tempMutex);
-        m_tempMapChunkData.emplace(chunkID, std::move(tempChunk));
+        m_tempMapChunkData.emplace(l_cID, std::move(tempChunk));
     }
 }
 
-void Map::EndLoadChunk(const ChunkID &l_cID) {
+void Map::EndLoadChunk(ChunkID l_cID) {
     std::unique_ptr<MapChunk> tempChunk;
     {
         std::lock_guard lock(m_tempMutex);
@@ -61,11 +61,11 @@ void Map::EndLoadChunk(const ChunkID &l_cID) {
         m_mapChunks.emplace(l_cID, std::move(tempChunk));
     }}
 
-void Map::UnloadChunkAsync(Chunk& l_chunk) {
+void Map::UnloadChunkAsync(ChunkID l_cID) {
 
 }
 
-void Map::EndUnloadChunk(const ChunkID& l_cID) {
+void Map::EndUnloadChunk(ChunkID l_cID) {
     RemoveChunk(l_cID);
 }
 

@@ -20,10 +20,10 @@ public:
 
     Map(World* l_world): m_world(l_world) {}
 
-    void LoadChunkAsync(Chunk& l_chunk) override;
-    void UnloadChunkAsync(Chunk& l_chunk) override;
-    void EndLoadChunk(const ChunkID& l_cID) override;
-    void EndUnloadChunk(const ChunkID& l_cID) override;
+    void LoadChunkAsync(ChunkID l_cID) override;
+    void UnloadChunkAsync(ChunkID l_cID) override;
+    void EndLoadChunk(ChunkID l_cID) override;
+    void EndUnloadChunk(ChunkID l_cID) override;
 
     void Update(float l_dT);
     void Draw(sf::RenderWindow* l_wind);

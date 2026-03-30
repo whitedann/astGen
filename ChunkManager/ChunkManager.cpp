@@ -1,7 +1,3 @@
-//
-// Created by Daniel White on 3/17/26.
-//
-
 #include "ChunkManager.h"
 
 #include <iostream>
@@ -15,24 +11,57 @@ void ChunkManager::Update(float l_dT) {
 
     UpdateChunksToLoad();
 
-    std::string textString = std::string("DISABLED");
-    m_loadQueuedSetText->setString(textString);
-    textString = "Load Queued: " + std::to_string(m_loadQueue.size());
-    m_loadQueueText->setString(textString);
-    textString = "DISABLED";
-    m_unloadQueuedSetText->setString(textString);
-    textString = "Unload Queued: " + std::to_string(m_unloadQueue.size());
-    m_unloadQueueText->setString(textString);
+    //UpdateTexts();
 }
 
 void ChunkManager::Draw(sf::RenderWindow *l_wind) {
     sf::View currentView = m_window->getView();
     l_wind->setView(m_window->getDefaultView());
-    l_wind->draw(*m_loadQueuedSetText);
-    l_wind->draw(*m_unloadQueuedSetText);
-    l_wind->draw(*m_loadQueueText);
-    l_wind->draw(*m_unloadQueueText);
+    l_wind->draw(*m_text1);
+    l_wind->draw(*m_text2);
+    l_wind->draw(*m_text3);
+    l_wind->draw(*m_text4);
     l_wind->setView(currentView);
+}
+
+void ChunkManager::UpdateTexts() {
+    int countLoaded = 0;
+    int countQueuedToLoad = 0;
+    int countQueuedToUnload = 0;
+    int countUnloading = 0;
+    int countLoading = 0;
+
+    for (auto& chunk : m_chunks) {
+        auto state = chunk.second->GetChunkState();
+        switch (state) {
+            case ChunkState::LOADED: {
+                countLoaded++;
+                break;
+            }
+            case ChunkState::QUEUED_TO_LOAD: {
+                countQueuedToLoad++;
+                break;
+            }
+            case ChunkState::LOADING: {
+                countLoading++;
+                break;
+            }
+            case ChunkState::QUEUED_TO_UNLOAD: {
+                countQueuedToUnload++;
+                break;
+            }
+            case ChunkState::UNLOADING: {
+                countUnloading++;
+                break;
+            }
+        }
+    }
+
+    m_text1->setString("Loaded: " + std::to_string(countLoaded));
+    m_text2->setString("Queued to load: " + std::to_string(countQueuedToLoad));
+    m_text3->setString("Unload Queue Size: " + std::to_string(m_unloadQueue.size()));
+    m_text4->setString("Queued to unload: " + std::to_string(countQueuedToUnload));
+    m_text5->setString("Unloading: " + std::to_string(countUnloading));
 }
 
 void ChunkManager::FinishLoadTasks() {
@@ -67,8 +96,6 @@ void ChunkManager::FinishUnloadTasks() {
 }
 
 void ChunkManager::UpdateChunksToLoad() {
-    m_chunksInRange.clear();
-
     const sf::Vector2f center = m_window->getView().getCenter();
     const sf::Vector2f size   = m_window->getView().getSize();
 
@@ -83,91 +110,82 @@ void ChunkManager::UpdateChunksToLoad() {
     int maxChunkY = static_cast<int>(std::floor(bottom / CHUNK_SIZE_PX));
 
     constexpr int margin = 1;
-
     minChunkX -= margin;
     maxChunkX += margin;
     minChunkY -= margin;
     maxChunkY += margin;
 
-    for (int x = minChunkX; x <= maxChunkX; x++)
-    {
-        for (int y = minChunkY; y <= maxChunkY; y++)
-        {
+    int centerChunkX = static_cast<int>(std::floor(center.x / CHUNK_SIZE_PX));
+    int centerChunkY = static_cast<int>(std::floor(center.y / CHUNK_SIZE_PX));
+
+    int maxRadius = std::max({
+        std::abs(centerChunkX - minChunkX),
+        std::abs(centerChunkX - maxChunkX),
+        std::abs(centerChunkY - minChunkY),
+        std::abs(centerChunkY - maxChunkY)
+    });
+
+    // LOAD pass: expand outward in rings
+    for (int r = 0; r <= maxRadius; r++) {
+        int startX = centerChunkX - r;
+        int endX   = centerChunkX + r;
+        int startY = centerChunkY - r;
+        int endY   = centerChunkY + r;
+
+        auto tryLoad = [&](int x, int y) {
+            if (x < minChunkX || x > maxChunkX || y < minChunkY || y > maxChunkY)
+                return;
+
             ChunkID id = MakeChunkID({x, y});
-            m_chunksInRange.insert(id);
-        }
+            auto idx = MakeChunkIndex(id);
+
+            auto [it, inserted] =
+                m_chunks.try_emplace(id, std::make_shared<Chunk>(id, idx));
+
+            Chunk& chunk = *it->second;
+
+            if (chunk.GetChunkState() == ChunkState::UNLOADED) {
+                QueueLoadChunk(id);
+            }
+            else if (chunk.GetChunkState() == ChunkState::QUEUED_TO_UNLOAD) {
+                CancelUnload(id);
+            }
+        };
+
+        // top
+        for (int x = startX; x <= endX; x++)
+            tryLoad(x, startY);
+
+        // right
+        for (int y = startY + 1; y <= endY; y++)
+            tryLoad(endX, y);
+
+        // bottom
+        for (int x = endX - 1; x >= startX; x--)
+            tryLoad(x, endY);
+
+        // left
+        for (int y = endY - 1; y > startY; y--)
+            tryLoad(startX, y);
     }
 
-    std::vector<ChunkID> sortedChunks(
-    m_chunksInRange.begin(),
-    m_chunksInRange.end()
-);
-
-    auto chunkCenter = [&](ChunkID id) {
-        auto [cx, cy] = MakeChunkIndex(id);
-        return sf::Vector2f(
-            (cx + 0.5f) * CHUNK_SIZE_PX,
-            (cy + 0.5f) * CHUNK_SIZE_PX
-        );
-    };
-
-    auto distSq = [&](const sf::Vector2f& a, const sf::Vector2f& b) {
-        float dx = a.x - b.x;
-        float dy = a.y - b.y;
-        return dx * dx + dy * dy;
-    };
-
-    std::sort(sortedChunks.begin(), sortedChunks.end(),
-        [&](ChunkID a, ChunkID b) {
-            float da = distSq(chunkCenter(a), center);
-            float db = distSq(chunkCenter(b), center);
-            return da < db; // closest first
-        });
-
-    for (auto& cID: sortedChunks) {
-        auto cIndex = MakeChunkIndex(cID);
-        auto [it, inserted] =
-            m_chunks.try_emplace(
-                cID,
-                std::make_shared<Chunk>(cID, cIndex)
-            );
-
-        Chunk& chunk = *it->second;
-        //if (!it->second) continue;
-        switch (chunk.GetChunkState()) {
-            case ChunkState::UNLOADED: {
-                QueueLoadChunk(chunk.GetChunkID());
-                break;
-            }
-            case ChunkState::LOADED: {
-                // Already loaded
-                break;
-            }
-            case ChunkState::UNLOADING: {
-                // Do nothing, it will finish unloading and then get put into load queue.
-                break;
-            }
-            case ChunkState::LOADING: {
-                // Do nothing, it's already getting loaded.
-                break;
-            }
-            case ChunkState::QUEUED_TO_LOAD: {
-                // Do nothing, it's already queued.
-                break;
-            }
-            case ChunkState::QUEUED_TO_UNLOAD: {
-                // Its unloaded, cancel unload
-                CancelUnload(chunk.GetChunkID());
-                break;
-            }
-        }
-    }
-
+    // UNLOAD pass: bounds check (no set lookup)
     for (auto& [id, chunk] : m_chunks) {
-        if (!m_chunksInRange.contains(id) &&
-            chunk->GetChunkState() == ChunkState::LOADED)
+        auto [x, y] = MakeChunkIndex(id);
+
+        if (x < minChunkX || x > maxChunkX || y < minChunkY || y > maxChunkY)
         {
-            QueueUnloadChunk(id);
+            ChunkState state = chunk->GetChunkState();
+
+            if (state == ChunkState::LOADED)
+            {
+                QueueUnloadChunk(id);
+            }
+            else if (state == ChunkState::QUEUED_TO_LOAD)
+            {
+                CancelLoad(id);
+                chunk->SetChunkState(ChunkState::UNLOADED);
+            }
         }
     }
 }
@@ -204,7 +222,7 @@ void ChunkManager::QueueUnloadChunk(ChunkID l_cID) {
     }
     if (ChunkIsLocked(l_cID)) return;
 
-    it->second->SetChunkState(ChunkState::UNLOADED);
+    it->second->SetChunkState(ChunkState::QUEUED_TO_UNLOAD);
     m_unloadQueue.push_back(l_cID);
 }
 
@@ -213,6 +231,12 @@ void ChunkManager::CancelLoad(const ChunkID& l_cID) {
         std::remove(m_loadQueue.begin(), m_loadQueue.end(), l_cID),
         m_loadQueue.end()
     );
+    auto it = m_chunks.find(l_cID);
+    if (it != m_chunks.end() &&
+        it->second->GetChunkState() == ChunkState::QUEUED_TO_LOAD)
+    {
+        it->second->SetChunkState(ChunkState::UNLOADED);
+    }
 }
 
 void ChunkManager::CancelUnload(const ChunkID& l_cID) {
@@ -220,6 +244,12 @@ void ChunkManager::CancelUnload(const ChunkID& l_cID) {
         std::remove(m_unloadQueue.begin(), m_unloadQueue.end(), l_cID),
         m_unloadQueue.end()
     );
+    auto it = m_chunks.find(l_cID);
+    if (it != m_chunks.end() &&
+        it->second->GetChunkState() == ChunkState::QUEUED_TO_UNLOAD)
+    {
+        it->second->SetChunkState(ChunkState::LOADED);
+    }
 }
 
 void ChunkManager::ProcessLoadQueue() {
@@ -231,11 +261,13 @@ void ChunkManager::ProcessLoadQueue() {
 
         auto it = m_chunks.find(id);
         if (it == m_chunks.end()) continue;
+
         auto& chunk = it->second;
+        auto cID = chunk->GetChunkID();
         chunk->SetChunkState(ChunkState::LOADING);
 
-        auto workTask = [chunk, this]() {
-            LoadChunkAsync(*chunk);
+        auto workTask = [cID, this]() {
+            LoadChunkAsync(cID);
         };
 
         m_loadChunkTasks.insert({
@@ -256,9 +288,10 @@ void ChunkManager::ProcessUnloadQueue() {
         if (it == m_chunks.end()) continue;
         auto& chunk = it->second;
         chunk->SetChunkState(ChunkState::UNLOADING);
+        auto cID = chunk->GetChunkID();
 
-        auto workTask = [chunk, this]() {
-            UnloadChunkAsync(*chunk);
+        auto workTask = [cID, this]() {
+            UnloadChunkAsync(cID);
         };
 
         m_unloadChunkTasks.insert({
@@ -268,15 +301,15 @@ void ChunkManager::ProcessUnloadQueue() {
     }
 }
 
-void ChunkManager::LoadChunkAsync(Chunk& l_chunk) const {
+void ChunkManager::LoadChunkAsync(ChunkID l_cID) const {
     for (auto& loader : m_chunkLoaders) {
-        loader->LoadChunkAsync(l_chunk);
+        loader->LoadChunkAsync(l_cID);
     }
 }
 
-void ChunkManager::UnloadChunkAsync(Chunk& l_chunk) const {
+void ChunkManager::UnloadChunkAsync(ChunkID l_cID) const {
     for (auto& loader : m_chunkLoaders) {
-        loader->UnloadChunkAsync(l_chunk);
+        loader->UnloadChunkAsync(l_cID);
     }
 }
 

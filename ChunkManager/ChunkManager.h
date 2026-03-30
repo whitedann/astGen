@@ -15,8 +15,8 @@
 #include "Chunk.h"
 #include "ChunkLoader.h"
 
-static int MAX_CONCURRENT_LOADS = 5;
-static int MAX_CONCURRENT_UNLOADS = 100;
+static int MAX_CONCURRENT_LOADS = 250;
+static int MAX_CONCURRENT_UNLOADS = 200;
 
 static ChunkID MakeChunkID(const sf::Vector2i& l_cIndex) {
     return l_cIndex.x * 1000 + l_cIndex.y;
@@ -50,25 +50,30 @@ public:
         if(!loaded) {
             std::cerr<<"Error loading font"<<std::endl;
         }
-        m_unloadQueuedSetText = new sf::Text(m_font, "");
-        m_unloadQueuedSetText->setCharacterSize(32);
-        m_unloadQueuedSetText->setFillColor(sf::Color::White);
-        m_unloadQueuedSetText->setPosition({10.f, 5.f});
+        m_text1 = new sf::Text(m_font, "");
+        m_text1->setCharacterSize(32);
+        m_text1->setFillColor(sf::Color::White);
+        m_text1->setPosition({10.f, 5.f});
 
-        m_unloadQueueText = new sf::Text(m_font, "");
-        m_unloadQueueText->setCharacterSize(32);
-        m_unloadQueueText->setFillColor(sf::Color::White);
-        m_unloadQueueText->setPosition({10.f, 37.f});
+        m_text2 = new sf::Text(m_font, "");
+        m_text2->setCharacterSize(32);
+        m_text2->setFillColor(sf::Color::White);
+        m_text2->setPosition({10.f, 37.f});
 
-        m_loadQueueText = new sf::Text(m_font, "");
-        m_loadQueueText->setCharacterSize(32);
-        m_loadQueueText->setFillColor(sf::Color::White);
-        m_loadQueueText->setPosition({10.f, 69.f});
+        m_text3 = new sf::Text(m_font, "");
+        m_text3->setCharacterSize(32);
+        m_text3->setFillColor(sf::Color::White);
+        m_text3->setPosition({10.f, 69.f});
 
-        m_loadQueuedSetText = new sf::Text(m_font, "");
-        m_loadQueuedSetText->setCharacterSize(32);
-        m_loadQueuedSetText->setFillColor(sf::Color::White);
-        m_loadQueuedSetText->setPosition({10.f, 101.f});
+        m_text4 = new sf::Text(m_font, "");
+        m_text4->setCharacterSize(32);
+        m_text4->setFillColor(sf::Color::White);
+        m_text4->setPosition({10.f, 101.f});
+
+        m_text5 = new sf::Text(m_font, "");
+        m_text5->setCharacterSize(32);
+        m_text5->setFillColor(sf::Color::White);
+        m_text5->setPosition({10.f, 133.f});
     }
 
     void Update(float l_dT);
@@ -92,32 +97,35 @@ private:
     void ProcessLoadQueue();
     void ProcessUnloadQueue();
 
-    void LoadChunkAsync(Chunk& l_chunk) const;
-    void UnloadChunkAsync(Chunk& l_chunk) const;
+    void LoadChunkAsync(ChunkID l_cID) const;
+    void UnloadChunkAsync(ChunkID l_cID) const;
 
     void EndLoadChunk(const ChunkID& l_cID) const;
     void EndUnloadChunk(const ChunkID& l_cID) const;
 
     bool ChunkIsLocked(const ChunkID &l_cID);
 
+    // DEBUG
+    void UpdateTexts();
+
     sf::RenderWindow* m_window;
 
     std::unordered_map<ChunkID, std::shared_ptr<Chunk>> m_chunks;
     std::vector<ChunkLoader*> m_chunkLoaders;
 
-    std::set<ChunkID> m_chunksInRange;
-
     std::deque<ChunkID> m_loadQueue;
     std::deque<ChunkID> m_unloadQueue;
+
     std::unordered_map<ChunkID, std::future<void>> m_loadChunkTasks;
     std::unordered_map<ChunkID, std::future<void>> m_unloadChunkTasks;
 
     /** DEBUG **/
     sf::Font m_font;
-    sf::Text* m_loadQueueText;
-    sf::Text* m_loadQueuedSetText;
-    sf::Text* m_unloadQueueText;
-    sf::Text* m_unloadQueuedSetText;
+    sf::Text* m_text1;
+    sf::Text* m_text2;
+    sf::Text* m_text3;
+    sf::Text* m_text4;
+    sf::Text* m_text5;
 
 
 };
