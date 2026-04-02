@@ -23,11 +23,13 @@ public:
          m_sprite(nullptr)
     {
         InitPerlin(100);
-        //Generate();
     }
 
     Tile GetTile(int x, int y) {
         Tile toReturn;
+        toReturn.tileType = TileType::Empty;
+        toReturn.oreType = OreType::EmptyOre;
+        toReturn.geometry = 0;
         float dx = static_cast<float>(x - m_center.x);
         float dy = static_cast<float>(y - m_center.y);
 
@@ -157,65 +159,6 @@ public:
     sf::Vector2u GetSize() const { return m_size; }
 
 private:
-    void Generate()
-    {
-        for (unsigned int y = 0; y < m_size.y; y++)
-        {
-            for (unsigned int x = 0; x < m_size.x; x++)
-            {
-                auto [tileType, oreType] = GetTile(x, y);
-                switch (tileType) {
-                    case TileType::Empty:
-                        break;
-                    case TileType::Dust:
-                        if (oreType != OreType::EmptyOre) {
-                            if (oreType != OreType::DustOre) {
-                                m_image.setPixel({x,y}, {164, 81, 255, 255});
-                            }
-                            else {
-                                m_image.setPixel({x,y}, {255, 118, 125, 255});
-                            }
-                        }
-                        else {
-                            m_image.setPixel({x,y}, {171, 187, 207, 255});
-                        }
-                        break;
-                    case TileType::Rock:
-                        if (oreType != OreType::EmptyOre) {
-                            if (oreType != OreType::RockOre) {
-                                m_image.setPixel({x,y}, {98, 122, 102, 255});
-                            }
-                            else {
-                                m_image.setPixel({x,y}, {168, 122, 199, 255});
-                            }
-                        }
-                        else {
-                            m_image.setPixel({x,y}, {133, 149, 207, 255});
-                        }
-                        break;
-                    case TileType::DenseRock:
-                        if (oreType != OreType::EmptyOre) {
-                            m_image.setPixel({x,y}, {205, 70, 250, 255});
-                        }
-                        else {
-                            m_image.setPixel({x,y}, {96, 112, 133, 255});
-                        }
-                        break;
-                    case TileType::SuperDenseRock:
-                        if (oreType != OreType::EmptyOre) {
-                            m_image.setPixel({x,y}, {76, 217, 99, 255});
-                        }
-                        else {
-                            m_image.setPixel({x,y}, {73, 88, 107, 255});
-                        }
-                        break;
-                }
-            }
-        }
-        auto completed = m_texture.resize(m_size);
-        m_texture.update(m_image);
-        m_sprite = new sf::Sprite(m_texture);
-    }
 
     void InitPerlin(uint32_t seed) {
         std::array<int,256> p;

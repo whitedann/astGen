@@ -25,14 +25,17 @@ public:
     void EndLoadChunk(ChunkID l_cID) override;
     void EndUnloadChunk(ChunkID l_cID) override;
 
+    uint8_t ComputeSolidMask(MapChunk &chunk, const sf::Vector2i &chunkIndex, int x, int y);
+
     void Update(float l_dT);
+
     void Draw(sf::RenderWindow* l_wind);
 
 private:
 
     MapChunk& AddTempChunk(const ChunkID& l_chunk, const sf::Vector2i& l_cIndex);
-
     void RemoveChunk(const ChunkID& l_chunk);
+    Tile GetTileForMask(MapChunk &chunk, const sf::Vector2i &chunkIndex, int localX, int localY);
 
     World* m_world;
 

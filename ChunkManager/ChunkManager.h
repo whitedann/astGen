@@ -18,14 +18,6 @@
 static int MAX_CONCURRENT_LOADS = 250;
 static int MAX_CONCURRENT_UNLOADS = 200;
 
-static ChunkID MakeChunkID(const sf::Vector2i& l_cIndex) {
-    return l_cIndex.x * 1000 + l_cIndex.y;
-}
-
-static sf::Vector2i MakeChunkIndex(const ChunkID l_cID) {
-    return { l_cID / 1000, l_cID % 1000 };
-}
-
 static sf::Vector2f GetChunkWorldCenter(const ChunkID& id) {
     auto [x, y] = MakeChunkIndex(id);
 

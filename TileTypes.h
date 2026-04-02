@@ -21,10 +21,13 @@ enum class OreType {
     SuperDenseRockOre
 };
 
+using TileGeometry = uint8_t;
+
 class Tile {
 public:
     TileType tileType = TileType::Empty;
     OreType oreType = OreType::EmptyOre;
+    TileGeometry geometry = 0;
 };
 
 #endif //ASTGEN_TILETYPES_H

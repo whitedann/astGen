@@ -15,12 +15,12 @@ void Map::Update(float l_dT) {
 }
 
 void Map::LoadChunkAsync(ChunkID l_cID) {
-
     sf::Vector2i chunkIndex = MakeChunkIndex(l_cID);
     std::unique_ptr<MapChunk> tempChunk =
         std::make_unique<MapChunk>(
         l_cID,
         chunkIndex);
+    // PASS 1: generate base tiles
     for (int y = 0; y < CHUNK_SIZE_PX; y++) {
         for (int x = 0; x < CHUNK_SIZE_PX; x++) {
             // Convert local chunk coords to world coords
@@ -28,7 +28,22 @@ void Map::LoadChunkAsync(ChunkID l_cID) {
             int worldY = chunkIndex.y * CHUNK_SIZE_PX + y;
             auto tile = m_world->GetTile(worldX, worldY);
             sf::Vector2i tileIndex = {x, y};
-            tempChunk->SetTile(tileIndex, tile.tileType);
+            tempChunk->SetTile(tileIndex, tile);
+        }
+    }
+    // PASS 2: compute geometry bitmask for each tile
+    for (int y = 0; y < CHUNK_SIZE_PX; y++) {
+        for (int x = 0; x < CHUNK_SIZE_PX; x++) {
+            sf::Vector2i tileIndex = {x, y};
+            Tile tile = tempChunk->GetTile(tileIndex);
+            if (tile.tileType == TileType::Empty) {
+                tile.geometry = 0;
+            }
+            else {
+                uint8_t mask = ComputeSolidMask(*tempChunk, chunkIndex, x, y);
+                tile.geometry = mask;
+            }
+            tempChunk->SetTile(tileIndex, tile, true);
         }
     }
     {
@@ -69,6 +84,50 @@ void Map::EndUnloadChunk(ChunkID l_cID) {
     RemoveChunk(l_cID);
 }
 
+uint8_t Map::ComputeSolidMask(MapChunk& chunk, const sf::Vector2i& chunkIndex, int x, int y)
+{
+    auto isSolid = [](TileType t) {
+        return t != TileType::Empty;
+    };
+
+    bool N  = isSolid(GetTileForMask(chunk, chunkIndex, x,     y - 1).tileType);
+    bool E  = isSolid(GetTileForMask(chunk, chunkIndex, x + 1, y    ).tileType);
+    bool S  = isSolid(GetTileForMask(chunk, chunkIndex, x,     y + 1).tileType);
+    bool W  = isSolid(GetTileForMask(chunk, chunkIndex, x - 1, y    ).tileType);
+
+    bool NE = N && E && isSolid(GetTileForMask(chunk, chunkIndex, x + 1, y - 1).tileType);
+    bool SE = S && E && isSolid(GetTileForMask(chunk, chunkIndex, x + 1, y + 1).tileType);
+    bool SW = S && W && isSolid(GetTileForMask(chunk, chunkIndex, x - 1, y + 1).tileType);
+    bool NW = N && W && isSolid(GetTileForMask(chunk, chunkIndex, x - 1, y - 1).tileType);
+
+    uint8_t mask = 0;
+    if (N)  mask |= (1 << 0);
+    if (E)  mask |= (1 << 1);
+    if (S)  mask |= (1 << 2);
+    if (W)  mask |= (1 << 3);
+    if (NE) mask |= (1 << 4);
+    if (SE) mask |= (1 << 5);
+    if (SW) mask |= (1 << 6);
+    if (NW) mask |= (1 << 7);
+
+    return mask;
+}
+
+Tile Map::GetTileForMask(MapChunk& chunk, const sf::Vector2i& chunkIndex, int localX, int localY)
+{
+    if (localX >= 0 && localX < CHUNK_SIZE_PX && localY >= 0 && localY < CHUNK_SIZE_PX)
+    {
+        sf::Vector2i index(localX, localY);
+        return chunk.GetTile(index);
+    }
+
+    // outside this chunk -> query world
+    int worldX = chunkIndex.x * CHUNK_SIZE_PX + localX;
+    int worldY = chunkIndex.y * CHUNK_SIZE_PX + localY;
+
+    return m_world->GetTile(worldX, worldY);
+}
+
 void Map::Draw(sf::RenderWindow* l_wind) {
     for (auto& chunk : m_mapChunks) {
         if (chunk.second->NeedsRedraw()) {
@@ -78,9 +137,9 @@ void Map::Draw(sf::RenderWindow* l_wind) {
 
         sf::Vector2i index = chunk.second.get()->GetIndex();
         sf::RectangleShape rect;
-        rect.setFillColor({0, 255 , 0, 40});
+        rect.setFillColor({0, 255 , 0, 0});
         rect.setOutlineColor({0, 0, 0, 100});
-        rect.setOutlineThickness(1);
+        rect.setOutlineThickness(1.f);
         rect.setSize({CHUNK_SIZE_PX - 2.f, CHUNK_SIZE_PX - 2.f});
         rect.setPosition({(float)(CHUNK_SIZE_PX * index.x) + 1.f, (float)(CHUNK_SIZE_PX * index.y) + 1.f });
         l_wind->draw(rect);
