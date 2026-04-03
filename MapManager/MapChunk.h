@@ -94,6 +94,7 @@ public:
     }
 
     void Redraw() {
+        m_texture->setSmooth(false);    
         size_t totalVerts = m_tilesIndexesToRedraw.size() * 4;
         sf::VertexArray verts;
         verts.resize(totalVerts);

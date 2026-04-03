@@ -49,29 +49,38 @@ public:
 
         m_text2 = new sf::Text(m_font, "");
         m_text2->setCharacterSize(32);
-        m_text2->setFillColor(sf::Color::White);
+        m_text2->setFillColor(sf::Color::Black);
         m_text2->setPosition({10.f, 37.f});
 
         m_text3 = new sf::Text(m_font, "");
         m_text3->setCharacterSize(32);
-        m_text3->setFillColor(sf::Color::White);
+        m_text3->setFillColor(sf::Color::Black);
         m_text3->setPosition({10.f, 69.f});
 
         m_text4 = new sf::Text(m_font, "");
         m_text4->setCharacterSize(32);
-        m_text4->setFillColor(sf::Color::White);
+        m_text4->setFillColor(sf::Color::Black);
         m_text4->setPosition({10.f, 101.f});
 
         m_text5 = new sf::Text(m_font, "");
         m_text5->setCharacterSize(32);
-        m_text5->setFillColor(sf::Color::White);
+        m_text5->setFillColor(sf::Color::Black);
         m_text5->setPosition({10.f, 133.f});
+
+        m_text6 = new sf::Text(m_font, "");
+        m_text6->setCharacterSize(32);
+        m_text6->setFillColor(sf::Color::Black);
+        m_text6->setPosition({10.f, 165.f});
+
     }
 
     void Update(float l_dT);
     void Draw(sf::RenderWindow* l_wind);
 
     void AddChunkLoader(ChunkLoader* l_chunkLoader) { m_chunkLoaders.push_back(l_chunkLoader); }
+
+    void SetText5(std::string text);
+    void SetText6(std::string l_text);
 
 private:
 
@@ -119,7 +128,7 @@ private:
     sf::Text* m_text4;
     sf::Text* m_text5;
 
-
+    sf::Text* m_text6;
 };
 
 #endif //ASTGEN_CHUNKMANAGER_H

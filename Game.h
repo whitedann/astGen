@@ -37,6 +37,7 @@ private:
     std::unique_ptr<sf::RenderWindow> m_renderWindow;
     std::unique_ptr<Camera> m_camera;
     std::unique_ptr<World> m_world;
+
 };
 
 #endif //ASTGEN_GAME_H

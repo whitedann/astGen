@@ -84,6 +84,39 @@ void Map::EndUnloadChunk(ChunkID l_cID) {
     RemoveChunk(l_cID);
 }
 
+uint8_t Map::GetSolidMask(const sf::Vector2f& globalPos)
+{
+    // Convert pixel position to integer tile coordinate
+    int tx = static_cast<int>(std::floor(globalPos.x));
+    int ty = static_cast<int>(std::floor(globalPos.y));
+
+    auto isSolid = [](TileType t) {
+        return t != TileType::Empty;
+    };
+
+    bool N  = isSolid(m_world->GetTile(tx,     ty - 1).tileType);
+    bool E  = isSolid(m_world->GetTile(tx + 1, ty    ).tileType);
+    bool S  = isSolid(m_world->GetTile(tx,     ty + 1).tileType);
+    bool W  = isSolid(m_world->GetTile(tx - 1, ty    ).tileType);
+
+    bool NE = N && E && isSolid(m_world->GetTile(tx + 1, ty - 1).tileType);
+    bool SE = S && E && isSolid(m_world->GetTile(tx + 1, ty + 1).tileType);
+    bool SW = S && W && isSolid(m_world->GetTile(tx - 1, ty + 1).tileType);
+    bool NW = N && W && isSolid(m_world->GetTile(tx - 1, ty - 1).tileType);
+
+    uint8_t mask = 0;
+    if (N)  mask |= (1 << 0);
+    if (E)  mask |= (1 << 1);
+    if (S)  mask |= (1 << 2);
+    if (W)  mask |= (1 << 3);
+    if (NE) mask |= (1 << 4);
+    if (SE) mask |= (1 << 5);
+    if (SW) mask |= (1 << 6);
+    if (NW) mask |= (1 << 7);
+
+    return mask;
+}
+
 uint8_t Map::ComputeSolidMask(MapChunk& chunk, const sf::Vector2i& chunkIndex, int x, int y)
 {
     auto isSolid = [](TileType t) {

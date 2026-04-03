@@ -34,6 +34,16 @@ void Game::HandleEvents() const {
         }
         m_camera->HandleEvent(*m_renderWindow, *event);
     }
+
+    sf::Vector2i mousePixel = sf::Mouse::getPosition(*m_renderWindow);
+    sf::Vector2f mouseWorld = m_renderWindow->mapPixelToCoords(mousePixel);
+
+    auto isSolid = m_map->GetSolidMask(mouseWorld);
+    m_chunkManager->SetText6(isSolid ? std::string("Solid") : std::string("Normal"));
+
+    int tx = static_cast<int>(std::floor(mousePixel.x));
+    int ty = static_cast<int>(std::floor(mousePixel.y));
+    m_chunkManager->SetText5(std::to_string(tx) + ", " + std::to_string(ty));
 }
 
 void Game::SetupClasses() {

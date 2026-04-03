@@ -11,7 +11,7 @@ void ChunkManager::Update(float l_dT) {
 
     UpdateChunksToLoad();
 
-    //UpdateTexts();
+    UpdateTexts();
 }
 
 void ChunkManager::Draw(sf::RenderWindow *l_wind) {
@@ -21,6 +21,8 @@ void ChunkManager::Draw(sf::RenderWindow *l_wind) {
     l_wind->draw(*m_text2);
     l_wind->draw(*m_text3);
     l_wind->draw(*m_text4);
+    l_wind->draw(*m_text5);
+    l_wind->draw(*m_text6);
     l_wind->setView(currentView);
 }
 
@@ -61,8 +63,17 @@ void ChunkManager::UpdateTexts() {
     m_text2->setString("Queued to load: " + std::to_string(countQueuedToLoad));
     m_text3->setString("Unload Queue Size: " + std::to_string(m_unloadQueue.size()));
     m_text4->setString("Queued to unload: " + std::to_string(countQueuedToUnload));
-    m_text5->setString("Unloading: " + std::to_string(countUnloading));
+    //m_text5->setString("Unloading: " + std::to_string(countUnloading));
 }
+
+void ChunkManager::SetText5(std::string text) {
+    m_text5->setString(text);
+}
+
+void ChunkManager::SetText6(std::string l_text) {
+    m_text6->setString(l_text);
+}
+
 
 void ChunkManager::FinishLoadTasks() {
     for (auto it = m_loadChunkTasks.begin(); it != m_loadChunkTasks.end();) {

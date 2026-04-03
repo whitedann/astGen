@@ -25,6 +25,8 @@ public:
     void EndLoadChunk(ChunkID l_cID) override;
     void EndUnloadChunk(ChunkID l_cID) override;
 
+    uint8_t GetSolidMask(const sf::Vector2f& l_globalPosition);
+
     uint8_t ComputeSolidMask(MapChunk &chunk, const sf::Vector2i &chunkIndex, int x, int y);
 
     void Update(float l_dT);
