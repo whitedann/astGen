@@ -84,6 +84,13 @@ void Map::EndUnloadChunk(ChunkID l_cID) {
     RemoveChunk(l_cID);
 }
 
+Tile Map::GetTile(const sf::Vector2f& l_globalPosition) {
+    int tx = static_cast<int>(std::floor(l_globalPosition.x));
+    int ty = static_cast<int>(std::floor(l_globalPosition.y));
+    return m_world->GetTile(tx, ty);
+}
+
+
 uint8_t Map::GetSolidMask(const sf::Vector2f& globalPos)
 {
     // Convert pixel position to integer tile coordinate
@@ -161,6 +168,12 @@ Tile Map::GetTileForMask(MapChunk& chunk, const sf::Vector2i& chunkIndex, int lo
     return m_world->GetTile(worldX, worldY);
 }
 
+Tile Map::DrawTileOutline(const sf::Vector2i &l_tilePos) {
+    m_selectedTileIndex.x = l_tilePos.x;
+    m_selectedTileIndex.y = l_tilePos.y;
+    return m_world->GetTile(l_tilePos.x, l_tilePos.y);
+}
+
 void Map::Draw(sf::RenderWindow* l_wind) {
     for (auto& chunk : m_mapChunks) {
         if (chunk.second->NeedsRedraw()) {
@@ -175,8 +188,13 @@ void Map::Draw(sf::RenderWindow* l_wind) {
         rect.setOutlineThickness(1.f);
         rect.setSize({CHUNK_SIZE_PX - 2.f, CHUNK_SIZE_PX - 2.f});
         rect.setPosition({(float)(CHUNK_SIZE_PX * index.x) + 1.f, (float)(CHUNK_SIZE_PX * index.y) + 1.f });
-        l_wind->draw(rect);
+        //l_wind->draw(rect);
     }
+    sf::RectangleShape rect;
+    rect.setFillColor({255, 0, 0, 255});
+    rect.setSize({1.f, 1.f});
+    rect.setPosition({(float)m_selectedTileIndex.x, (float)m_selectedTileIndex.y});
+    l_wind->draw(rect);
 }
 
 MapChunk& Map::AddTempChunk(const ChunkID &l_chunkID, const sf::Vector2i& l_cIndex) {

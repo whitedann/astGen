@@ -27,6 +27,9 @@ public:
 
     uint8_t GetSolidMask(const sf::Vector2f& l_globalPosition);
 
+    Tile DrawTileOutline(const sf::Vector2i& l_tilePos);
+    Tile GetTile(const sf::Vector2f& l_globalPosition);
+
     uint8_t ComputeSolidMask(MapChunk &chunk, const sf::Vector2i &chunkIndex, int x, int y);
 
     void Update(float l_dT);
@@ -44,6 +47,8 @@ private:
     std::mutex m_tempMutex;
     std::unordered_map<ChunkID, std::unique_ptr<MapChunk>> m_tempMapChunkData;
     std::unordered_map<ChunkID, std::unique_ptr<MapChunk>> m_mapChunks;
+
+    sf::Vector2i m_selectedTileIndex = {0, 0};
 
 };
 

@@ -7,7 +7,7 @@
 
 static constexpr int WORLD_SIZE_CHUNKS = 300;
 static constexpr int CHUNK_SIZE_PX = 32;
-static constexpr int TILE_SIZE_PX = 8;
+static constexpr int TILE_SIZE_PX = 1;
 
 enum class ChunkState {
     QUEUED_TO_LOAD,

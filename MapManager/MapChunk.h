@@ -115,9 +115,9 @@ public:
                 default:                     tileColor = sf::Color::Magenta; break;
             }
             if (IsEdgeTileCardinal(tile.tileType, tile.geometry)) {
-                tileColor = sf::Color::Green;
+                //tileColor = sf::Color::Green;
             }
-            tileColor = GetColorFromMaskCardinal(tile.geometry);
+            //tileColor = GetColorFromMaskCardinal(tile.geometry);
             sf::Vector2i tilePos = { indexX, indexY };
             quad[0].position = { (float)(tilePos.x), (float)(tilePos.y)};
             quad[1].position = { (float)((tilePos.x + 1)), (float)(tilePos.y)};

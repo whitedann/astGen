@@ -38,11 +38,13 @@ void Game::HandleEvents() const {
     sf::Vector2i mousePixel = sf::Mouse::getPosition(*m_renderWindow);
     sf::Vector2f mouseWorld = m_renderWindow->mapPixelToCoords(mousePixel);
 
-    auto isSolid = m_map->GetSolidMask(mouseWorld);
-    m_chunkManager->SetText6(isSolid ? std::string("Solid") : std::string("Normal"));
+    int tx = static_cast<int>(std::floor(mouseWorld.x / TILE_SIZE_PX));
+    int ty = static_cast<int>(std::floor(mouseWorld.y / TILE_SIZE_PX));
 
-    int tx = static_cast<int>(std::floor(mousePixel.x));
-    int ty = static_cast<int>(std::floor(mousePixel.y));
+    auto tile = m_map->DrawTileOutline({tx, ty});
+    bool isSolid = tile.tileType != TileType::Empty;
+
+    m_chunkManager->SetText6(isSolid ? std::string("Solid") : std::string("Empty"));
     m_chunkManager->SetText5(std::to_string(tx) + ", " + std::to_string(ty));
 }
 
